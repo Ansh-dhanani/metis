@@ -6,8 +6,11 @@ from datetime import datetime
 
 users_bp = Blueprint('users', __name__)
 
-@users_bp.route('/register', methods=['POST'])
+@users_bp.route('/register', methods=['GET', 'POST'])
 def register():
+    if request.method == 'GET':
+        return jsonify({"error": "Method not allowed. Please use POST to register a new user."}), 405
+
     data = request.json
     # Basic validation
     required = ['email', 'password', 'role'] # role: 'hr' or 'candidate'
@@ -38,8 +41,11 @@ def register():
     result = db.users.insert_one(user_doc)
     return jsonify({"userId": str(result.inserted_id), "message": "User registered successfully"}), 201
 
-@users_bp.route('/login', methods=['POST'])
+@users_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    if request.method == 'GET':
+        return jsonify({"error": "Method not allowed. Please use POST to login."}), 405
+
     data = request.json
     user = db.users.find_one({"email": data.get('email'), "password": data.get('password')})
     if not user:
@@ -83,6 +89,9 @@ def upload_resume(user_id):
 
 @users_bp.route('/<user_id>', methods=['GET'])
 def get_profile(user_id):
+    if not ObjectId.is_valid(user_id):
+        return jsonify({"error": "Invalid User ID format"}), 400
+
     user = db.users.find_one({"_id": ObjectId(user_id)})
     if not user:
         return jsonify({"error": "User not found"}), 404
