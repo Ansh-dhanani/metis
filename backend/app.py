@@ -92,8 +92,6 @@ except Exception as e:
 
 # Initialize SocketIO handlers only when not on Vercel
 if not IS_VERCEL and socketio is not None:
-# Initialize SocketIO handlers only when not on Vercel
-if not IS_VERCEL and socketio is not None:
     try:
         from routes.live_interview import live_interview_bp, init_socketio
         app.register_blueprint(live_interview_bp, url_prefix='/api/live-interview')
