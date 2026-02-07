@@ -50,10 +50,22 @@ if not IS_VERCEL:
         async_mode='eventlet'
     )
 
-# MongoDB Configuration
-MONGO_URI = os.getenv("MONGO_URI", os.getenv("DATABASE_URL"))
-client = MongoClient(MONGO_URI)
-db = client['flask_db']  # Use flask_db as database name
+# MongoDB Configuration (with error handling)
+try:
+    MONGO_URI = os.getenv("MONGO_URI", os.getenv("DATABASE_URL"))
+    if MONGO_URI:
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        # Test connection immediately
+        client.admin.command('ping')
+        db = client['flask_db']
+    else:
+        print("WARNING: No MONGO_URI found in environment")
+        client = None
+        db = None
+except Exception as e:
+    print(f"MongoDB connection error: {e}")
+    client = None
+    db = None
 
 
 from routes.jobs import jobs_bp
@@ -65,30 +77,41 @@ from routes.applications import applications_bp
 from routes.evaluation import evaluation_bp
 from routes.advanced_ranking import advanced_ranking_bp
 
-# Register blueprints
-app.register_blueprint(jobs_bp, url_prefix='/api/jobs')
-app.register_blueprint(assessments_bp, url_prefix='/api/assessments')
-app.register_blueprint(rankings_bp, url_prefix='/api/rankings')
-app.register_blueprint(interview_bp, url_prefix='/api/interview')
-app.register_blueprint(users_bp, url_prefix='/api/users')
-app.register_blueprint(applications_bp, url_prefix='/api/applications')
-app.register_blueprint(evaluation_bp, url_prefix='/api/evaluation')
-app.register_blueprint(advanced_ranking_bp, url_prefix='/api/advanced-ranking')
+# Register blueprints with error handling
+try:
+    app.register_blueprint(jobs_bp, url_prefix='/api/jobs')
+    app.register_blueprint(assessments_bp, url_prefix='/api/assessments')
+    app.register_blueprint(rankings_bp, url_prefix='/api/rankings')
+    app.register_blueprint(interview_bp, url_prefix='/api/interview')
+    app.register_blueprint(users_bp, url_prefix='/api/users')
+    app.register_blueprint(applications_bp, url_prefix='/api/applications')
+    app.register_blueprint(evaluation_bp, url_prefix='/api/evaluation')
+    app.register_blueprint(advanced_ranking_bp, url_prefix='/api/advanced-ranking')
+except Exception as e:
+    print(f"Error registering blueprints: {e}")
 
 # Initialize SocketIO handlers only when not on Vercel
 if not IS_VERCEL and socketio is not None:
-    from routes.live_interview import live_interview_bp, init_socketio
-    app.register_blueprint(live_interview_bp, url_prefix='/api/live-interview')
-    init_socketio(socketio)
+# Initialize SocketIO handlers only when not on Vercel
+if not IS_VERCEL and socketio is not None:
+    try:
+        from routes.live_interview import live_interview_bp, init_socketio
+        app.register_blueprint(live_interview_bp, url_prefix='/api/live-interview')
+        init_socketio(socketio)
+    except Exception as e:
+        print(f"Error initializing SocketIO: {e}")
 
 @app.route("/")
 def hello_world():
-    try:
-        # Ping the database to check connection
-        client.admin.command('ping')
-        return "<p>Hello, World! MongoDB is connected. API routes are ready.</p>"
-    except Exception as e:
-        return f"<p>Hello, World! Could not connect to MongoDB: {e}</p>"
+    return {
+        "status": "ok",
+        "message": "Metis API is running",
+        "mongodb": "connected" if client else "disconnected"
+    }
+
+@app.route("/health")
+def health_check():
+    return {"status": "healthy"}, 200
 
 if __name__ == "__main__":
     PORT = int(os.getenv("PORT", 5000))

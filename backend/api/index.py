@@ -1,4 +1,11 @@
+import sys
+import os
+
+# Add parent directory to path so imports work
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from app import app
 
-# Vercel Serverless Function entry point
-# Vercel looks for `app` variable in this file
+# Export app for Vercel serverless functions
+__all__ = ['app']
+
