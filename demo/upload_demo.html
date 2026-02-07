@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>METIS - Round 1: Candidate Upload</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: #f1f5f9;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #fff, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: #94a3b8;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* File Upload */
+        .file-upload {
+            border: 2px dashed #475569;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload:hover {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .file-upload.dragover {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .file-upload .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .file-name {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: #1e293b;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            color: #10b981;
+        }
+
+        /* Form inputs */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+        }
+
+        input[type="text"],
+        input[type="url"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+
+        .optional {
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 0.875rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Profile Preview */
+        .profile-preview {
+            display: none;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #10b981);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .profile-info h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .profile-info p {
+            color: #94a3b8;
+        }
+
+        .section {
+            margin-top: 1.5rem;
+        }
+
+        .section h4 {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-bottom: 0.75rem;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 0.5rem;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .tag {
+            padding: 0.25rem 0.75rem;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 2rem;
+            font-size: 0.85rem;
+        }
+
+        .tag.github {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .repo-list {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .repo {
+            padding: 0.75rem;
+            background: #0f172a;
+            border-radius: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .repo-name {
+            font-weight: 500;
+        }
+
+        .repo-stars {
+            color: #fbbf24;
+        }
+
+        /* Score display */
+        .score-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        /* Status messages */
+        .status {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .status.loading {
+            display: block;
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            color: #fbbf24;
+        }
+
+        .status.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .status.success {
+            display: block;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>📄 METIS Round 1</h1>
+            <p>Upload candidate information for AI-powered evaluation</p>
+        </header>
+
+        <div id="statusMessage" class="status"></div>
+
+        <!-- Upload Form -->
+        <div id="uploadForm">
+            <div class="card">
+                <h2>📎 Resume Upload</h2>
+
+                <div class="file-upload" id="dropZone">
+                    <div class="icon">📄</div>
+                    <p>Drag & drop your PDF resume here</p>
+                    <p style="color: #64748b; margin-top: 0.5rem;">or click to browse</p>
+                    <input type="file" id="resumeFile" accept=".pdf">
+                    <div id="fileName" class="file-name hidden"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🔗 Additional Links <span class="optional">(Optional)</span></h2>
+
+                <div class="form-group">
+                    <label for="githubUrl">GitHub Profile</label>
+                    <input type="url" id="githubUrl" placeholder="https://github.com/username">
+                </div>
+
+                <div class="form-group">
+                    <label for="portfolioUrl">Portfolio Website</label>
+                    <input type="url" id="portfolioUrl" placeholder="https://yourportfolio.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="linkedinUrl">LinkedIn Profile</label>
+                    <input type="url" id="linkedinUrl" placeholder="https://linkedin.com/in/username">
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-primary" id="analyzeBtn" disabled>
+                    🔍 Analyze Candidate
+                </button>
+            </div>
+        </div>
+
+        <!-- Profile Preview -->
+        <div id="profilePreview" class="profile-preview">
+            <div class="card">
+                <h2>👤 Candidate Profile</h2>
+
+                <div class="profile-header">
+                    <div class="avatar">👤</div>
+                    <div class="profile-info">
+                        <h3 id="profileName">-</h3>
+                        <p id="profileHeadline">-</p>
+                        <small id="profileId" style="color: #64748b;">-</small>
+                    </div>
+                </div>
+
+                <div class="section" id="skillsSection">
+                    <h4>🛠️ Skills</h4>
+                    <div class="tags" id="skillsTags"></div>
+                </div>
+
+                <div class="section" id="githubSection">
+                    <h4>🐙 GitHub Repositories</h4>
+                    <div class="repo-list" id="repoList"></div>
+                </div>
+
+                <div class="section" id="portfolioSection">
+                    <h4>💼 Portfolio Projects</h4>
+                    <div id="projectList"></div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-success" id="startInterviewBtn">
+                    🎤 Start Round 2 Interview
+                </button>
+                <button class="btn btn-primary" id="resetBtn">
+                    🔄 Upload Another
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('resumeFile');
+        const fileName = document.getElementById('fileName');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        const uploadForm = document.getElementById('uploadForm');
+        const profilePreview = document.getElementById('profilePreview');
+
+        let selectedFile = null;
+        let candidateId = null;
+
+        // Drag & Drop
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+
+            const file = e.dataTransfer.files[0];
+            if (file && file.type === 'application/pdf') {
+                handleFile(file);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            fileName.textContent = `📎 ${file.name}`;
+            fileName.classList.remove('hidden');
+            analyzeBtn.disabled = false;
+        }
+
+        // Analyze
+        analyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            statusMessage.className = 'status loading';
+            statusMessage.textContent = '⏳ Analyzing candidate data...';
+            analyzeBtn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('github_url', document.getElementById('githubUrl').value);
+                formData.append('portfolio_url', document.getElementById('portfolioUrl').value);
+                formData.append('linkedin_url', document.getElementById('linkedinUrl').value);
+
+                const response = await fetch('/api/upload/analyze-file', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    candidateId = data.profile.candidate_id;
+                    showProfile(data.profile);
+                    statusMessage.className = 'status success';
+                    statusMessage.textContent = '✅ Analysis complete!';
+                } else {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+
+            } catch (error) {
+                statusMessage.className = 'status error';
+                statusMessage.textContent = `❌ Error: ${error.message}`;
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        function showProfile(profile) {
+            uploadForm.classList.add('hidden');
+            profilePreview.style.display = 'block';
+
+            document.getElementById('profileName').textContent = profile.name || 'Unknown Candidate';
+            document.getElementById('profileHeadline').textContent = profile.headline || 'Candidate';
+            document.getElementById('profileId').textContent = profile.candidate_id;
+
+            // Skills
+            const skillsTags = document.getElementById('skillsTags');
+            skillsTags.innerHTML = '';
+            (profile.skills || []).slice(0, 15).forEach(skill => {
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+                tag.textContent = skill;
+                skillsTags.appendChild(tag);
+            });
+
+            // GitHub repos
+            const repoList = document.getElementById('repoList');
+            repoList.innerHTML = '';
+            const repos = profile.github?.repos || [];
+            if (repos.length > 0) {
+                repos.slice(0, 5).forEach(repo => {
+                    const div = document.createElement('div');
+                    div.className = 'repo';
+                    div.innerHTML = `
+                        <span class="repo-name">${repo.name}</span>
+                        <span class="repo-stars">⭐ ${repo.stars || 0}</span>
+                    `;
+                    repoList.appendChild(div);
+                });
+                document.getElementById('githubSection').style.display = 'block';
+            } else {
+                document.getElementById('githubSection').style.display = 'none';
+            }
+
+            // Portfolio projects
+            const projectList = document.getElementById('projectList');
+            projectList.innerHTML = '';
+            const projects = profile.portfolio?.projects || [];
+            if (projects.length > 0) {
+                projects.slice(0, 5).forEach(proj => {
+                    const div = document.createElement('div');
+                    div.className = 'repo';
+                    div.innerHTML = `<span class="repo-name">${proj.name || 'Project'}</span>`;
+                    projectList.appendChild(div);
+                });
+                document.getElementById('portfolioSection').style.display = 'block';
+            } else {
+                document.getElementById('portfolioSection').style.display = 'none';
+            }
+        }
+
+        // Start Interview
+        document.getElementById('startInterviewBtn').addEventListener('click', () => {
+            window.location.href = `/interview?candidate_id=${candidateId}`;
+        });
+
+        // Reset
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            selectedFile = null;
+            candidateId = null;
+            fileInput.value = '';
+            fileName.classList.add('hidden');
+            analyzeBtn.disabled = true;
+            document.getElementById('githubUrl').value = '';
+            document.getElementById('portfolioUrl').value = '';
+            document.getElementById('linkedinUrl').value = '';
+            uploadForm.classList.remove('hidden');
+            profilePreview.style.display = 'none';
+            statusMessage.className = 'status';
+        });
+    </script>
+</body>
+
+</html>

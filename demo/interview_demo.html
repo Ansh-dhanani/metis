@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>METIS - AI Live Interview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --accent: #10b981;
+            --accent-light: #34d399;
+            --danger: #ef4444;
+            --bg-dark: #0f172a;
+            --bg-darker: #020617;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-darker) 0%, var(--bg-dark) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #fff, var(--primary-light));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-indicator {
+            padding: 0.5rem 1.5rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-idle {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+        }
+
+        .status-listening {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            animation: pulse 1s infinite;
+        }
+
+        .status-processing {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .status-speaking {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--primary-light);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        .setup-form {
+            background: var(--bg-card);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .chat-container {
+            background: var(--bg-card);
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+            height: 400px;
+            overflow-y: auto;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message.ai {
+            align-items: flex-start;
+        }
+
+        .message.user {
+            align-items: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            line-height: 1.5;
+        }
+
+        .message.ai .message-bubble {
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            border-bottom-left-radius: 0.25rem;
+        }
+
+        .message.user .message-bubble {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .message-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #059669);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-record {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+            min-width: 180px;
+        }
+
+        .btn-record.recording {
+            animation: pulse 0.5s infinite;
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .text-input-area {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .text-input-area input {
+            flex: 1;
+        }
+
+        .evaluation-panel {
+            background: var(--bg-card);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border: 1px solid var(--accent);
+            display: none;
+        }
+
+        .evaluation-panel.visible {
+            display: block;
+        }
+
+        .score-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .score-item {
+            text-align: center;
+            padding: 1rem;
+            background: var(--bg-dark);
+            border-radius: 0.5rem;
+        }
+
+        .score-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent-light);
+        }
+
+        .score-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🎤</div>
+            <h1>AI Live Interview</h1>
+            <p style="color: var(--text-secondary);">Model 2: Real-time Interview Evaluation</p>
+        </header>
+
+        <div class="status-bar">
+            <span id="status" class="status-indicator status-idle">Ready</span>
+            <span id="connection" class="status-indicator" style="background: var(--bg-card);">Connecting...</span>
+        </div>
+
+        <div id="setup-panel" class="setup-form">
+            <div class="form-group">
+                <label>Candidate Name</label>
+                <input type="text" id="candidateName" placeholder="Enter your name" value="Candidate">
+            </div>
+            <div class="form-group">
+                <label>Job Description</label>
+                <textarea id="jobDescription" placeholder="Paste the job description here...">Senior Software Engineer
+
+We are looking for an experienced engineer with:
+- 5+ years of Python development
+- Experience with REST APIs and microservices
+- Strong problem-solving skills
+- Excellent communication abilities</textarea>
+            </div>
+            <div class="controls">
+                <button class="btn btn-primary" onclick="startInterview()">
+                    🚀 Start Interview
+                </button>
+            </div>
+        </div>
+
+        <div id="interview-panel" style="display: none;">
+            <div id="chat" class="chat-container">
+                <div style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                    Interview will appear here...
+                </div>
+            </div>
+
+            <div class="controls">
+                <button id="recordBtn" class="btn btn-record" onmousedown="startRecording()" onmouseup="stopRecording()"
+                    ontouchstart="startRecording()" ontouchend="stopRecording()" disabled>
+                    🎙️ Hold to Speak
+                </button>
+                <button class="btn btn-secondary" onclick="endInterview()">
+                    ⏹️ End Interview
+                </button>
+            </div>
+
+            <div class="text-input-area">
+                <input type="text" id="textInput" placeholder="Or type your response here..."
+                    onkeypress="handleKeyPress(event)">
+                <button class="btn btn-secondary" onclick="sendText()">Send</button>
+            </div>
+        </div>
+
+        <div id="evaluation-panel" class="evaluation-panel">
+            <h3>📊 Interview Evaluation</h3>
+            <div class="score-grid">
+                <div class="score-item">
+                    <div class="score-value" id="personalityScore">--</div>
+                    <div class="score-label">Personality</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-value" id="technicalScore">--</div>
+                    <div class="score-label">Technical</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-value" id="communicationScore">--</div>
+                    <div class="score-label">Communication</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-value" id="interviewScore">--</div>
+                    <div class="score-label">Round 2 Score</div>
+                </div>
+            </div>
+            <p id="assessment" style="margin-top: 1rem; color: var(--text-secondary);"></p>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+
+        // Connect to WebSocket
+        function connect() {
+            socket = io('http://localhost:5000');
+
+            socket.on('connect', () => {
+                document.getElementById('connection').textContent = '🟢 Connected';
+                document.getElementById('connection').style.color = '#34d399';
+            });
+
+            socket.on('disconnect', () => {
+                document.getElementById('connection').textContent = '🔴 Disconnected';
+                document.getElementById('connection').style.color = '#f87171';
+            });
+
+            socket.on('connected', (data) => {
+                console.log('Server ready:', data);
+            });
+
+            socket.on('ai_response', (data) => {
+                addMessage('ai', data.text);
+                setStatus('speaking');
+
+                // Play audio if available
+                if (data.audio) {
+                    const audio = new Audio(`data:audio/mp3;base64,${data.audio}`);
+                    audio.onended = () => {
+                        if (!data.is_complete) {
+                            setStatus('idle');
+                            document.getElementById('recordBtn').disabled = false;
+                        }
+                    };
+                    audio.play().catch(() => setStatus('idle'));
+                } else {
+                    setTimeout(() => setStatus('idle'), 1000);
+                }
+
+                if (data.is_complete) {
+                    document.getElementById('recordBtn').disabled = true;
+                }
+            });
+
+            socket.on('user_transcript', (data) => {
+                addMessage('user', data.text);
+            });
+
+            socket.on('interview_evaluation', (data) => {
+                showEvaluation(data.evaluation);
+            });
+
+            socket.on('error', (data) => {
+                console.error('Error:', data.message);
+                addMessage('ai', `⚠️ ${data.message}`);
+                setStatus('idle');
+            });
+        }
+
+        function startInterview() {
+            const name = document.getElementById('candidateName').value.trim() || 'Candidate';
+            const jd = document.getElementById('jobDescription').value.trim();
+
+            if (!jd) {
+                alert('Please enter a job description');
+                return;
+            }
+
+            document.getElementById('setup-panel').style.display = 'none';
+            document.getElementById('interview-panel').style.display = 'block';
+            document.getElementById('chat').innerHTML = '';
+
+            socket.emit('start_interview', {
+                name: name,
+                jd_text: jd,
+                max_questions: 5
+            });
+
+            setStatus('processing');
+        }
+
+        async function startRecording() {
+            if (isRecording) return;
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    sendAudio(audioBlob);
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                setStatus('listening');
+                document.getElementById('recordBtn').classList.add('recording');
+                document.getElementById('recordBtn').textContent = '🔴 Recording...';
+            } catch (err) {
+                console.error('Microphone access denied:', err);
+                alert('Please allow microphone access to use voice input');
+            }
+        }
+
+        function stopRecording() {
+            if (!isRecording || !mediaRecorder) return;
+
+            mediaRecorder.stop();
+            isRecording = false;
+            setStatus('processing');
+            document.getElementById('recordBtn').classList.remove('recording');
+            document.getElementById('recordBtn').textContent = '🎙️ Hold to Speak';
+            document.getElementById('recordBtn').disabled = true;
+        }
+
+        function sendAudio(blob) {
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = () => {
+                const base64Audio = reader.result.split(',')[1];
+                socket.emit('user_audio', { audio: base64Audio });
+            };
+        }
+
+        function sendText() {
+            const input = document.getElementById('textInput');
+            const text = input.value.trim();
+
+            if (!text) return;
+
+            addMessage('user', text);
+            socket.emit('user_text', { text: text });
+            input.value = '';
+            setStatus('processing');
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendText();
+        }
+
+        function endInterview() {
+            socket.emit('end_interview');
+            document.getElementById('recordBtn').disabled = true;
+        }
+
+        function addMessage(role, text) {
+            const chat = document.getElementById('chat');
+            const msg = document.createElement('div');
+            msg.className = `message ${role}`;
+            msg.innerHTML = `
+                <span class="message-label">${role === 'ai' ? '🤖 AI Interviewer' : '👤 You'}</span>
+                <div class="message-bubble">${text}</div>
+            `;
+            chat.appendChild(msg);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function setStatus(status) {
+            const el = document.getElementById('status');
+            el.className = 'status-indicator status-' + status;
+            const labels = {
+                idle: 'Ready',
+                listening: '🔴 Listening',
+                processing: '⏳ Processing',
+                speaking: '🔊 AI Speaking'
+            };
+            el.textContent = labels[status] || status;
+        }
+
+        function showEvaluation(eval) {
+            const panel = document.getElementById('evaluation-panel');
+            panel.classList.add('visible');
+
+            document.getElementById('personalityScore').textContent = eval.personality_score;
+            document.getElementById('technicalScore').textContent = eval.technical_approach_score;
+            document.getElementById('communicationScore').textContent = eval.communication_score || '--';
+            document.getElementById('interviewScore').textContent = eval.interview_score;
+            document.getElementById('assessment').textContent = eval.overall_assessment || '';
+        }
+
+        // Initialize
+        connect();
+    </script>
+</body>
+
+</html>

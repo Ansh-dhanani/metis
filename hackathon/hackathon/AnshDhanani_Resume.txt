@@ -1,0 +1,50 @@
+﻿Ansh Dhanani
++ Surat, Gujarat, India
+
+# dhananiansh01@gmail.com ï https://linkedin.com/in/ansh-dhanani  https://anshdhanani.is-a.dev
+
+SUMMARY
+Full Stack Developer with hands-on experience building scalable web applications using React and Next.js. Proven
+ability to deliver production-ready features through 5+ hackathons and collaborative projects. Strong foundation in
+software engineering, system optimization, and problem-solving.
+
+TECHNICAL EXPERIENCE
+Project-Based Full Stack Development 2024 – Present
+Charusat University, Gujarat, India
+• Leveraged core CS fundamentals to design, build, and debug production-ready web applications.
+• Engineered 3+ full-stack web applications using React and Next.js for academic and real-world problem state-
+
+ments.
+• Collaborated in 5+ hackathons and team projects, contributing to frontend development, backend integration,
+
+and end-to-end debugging.
+
+PROJECTS
+CodeTurtle November 2025 – Present
+Software Group Project • https://coderturtle.vercel.app/
+• Developed a web platform for reviewing GitHub pull requests using GitHub Webhooks and REST APIs.
+• Implemented authentication using Email/Password and GitHub OAuth, with basic role-based access control.
+• Built a responsive and accessible UI using Shadcn UI and Tailwind CSS.
+• Designed views to display pull request details, review comments, and repository metadata.
+• Integrated backend logic using Next.js API routes, PostgreSQL, and Prisma.
+• Deployed the application on Vercel and configured environment variables and production builds.
+
+Open Source Contribution — React Bits UI Library July 2025 – August 2025
+https://github.com/DavidHDev/react-bits/pull/425
+• Implemented a Gradual Blur animation component, enhancing UI interactivity (+2,149 LOC added).
+• Followed industry-level folder architecture, optimizing rendering performance across Chrome, Firefox, and
+
+Edge.
+• Collaborated with maintainers through PR reviews and feedback iterations to refine the final implementation.
+
+EDUCATION
+Bachelor of Technology (B.Tech) — Artificial Intelligence & Machine Learning
+Charusat University • Gujarat, India • Expected 2028 • CGPA: 7.48
+
+SKILLS
+• Programming Languages: C, C++, JavaScript, TypeScript
+• Frontend: React, Next.js, Tailwind CSS
+• Backend: Node.js, REST APIs
+• Databases & ORM: PostgreSQL, MongoDB, SQL, Prisma, Mongoose
+• Tools & Platforms: Git, GitHub, Docker, VS Code, Cursor
+• Cloud & System Design (Basic): AWS, EC2, S3, Redis

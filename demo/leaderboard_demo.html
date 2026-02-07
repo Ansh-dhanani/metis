@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>METIS - Model 1 Round 1 Leaderboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-dark: #4f46e5;
+            --accent: #f59e0b;
+            --accent-light: #fbbf24;
+            --success: #10b981;
+            --success-light: #34d399;
+            --bg-dark: #0f172a;
+            --bg-darker: #020617;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: #334155;
+            --glow-primary: 0 0 40px rgba(99, 102, 241, 0.3);
+            --glow-accent: 0 0 40px rgba(245, 158, 11, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--bg-darker) 0%, var(--bg-dark) 50%, #1a1a2e 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem 0;
+        }
+
+        .logo {
+            font-size: 3.5rem;
+            margin-bottom: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-light) 50%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.35rem 1rem;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+            border: 1px solid var(--accent);
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            color: var(--accent-light);
+            margin-top: 0.75rem;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(30, 41, 59, 0.8) 100%);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--glow-accent);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+            letter-spacing: -0.02em;
+            color: var(--accent-light);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+
+        .stat-card.total .stat-value {
+            color: var(--primary-light);
+        }
+
+        .stat-card.round1 .stat-value {
+            color: var(--accent-light);
+        }
+
+        .stat-card.avg .stat-value {
+            color: var(--success-light);
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 0.85rem 1.5rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, #d97706 100%);
+            color: #1a1a2e;
+            box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(245, 158, 11, 0.5);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent);
+        }
+
+        .leaderboard {
+            background: var(--bg-card);
+            border-radius: 1.25rem;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        .leaderboard-title {
+            padding: 1.25rem 1.5rem;
+            background: linear-gradient(90deg, rgba(245, 158, 11, 0.15) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .leaderboard-title .icon {
+            font-size: 1.5rem;
+        }
+
+        .source-badge {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent-light);
+            padding: 0.3rem 0.85rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: auto;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .leaderboard-header {
+            display: grid;
+            grid-template-columns: 80px 1fr 110px 110px 110px 130px;
+            padding: 0.85rem 1.5rem;
+            background: rgba(245, 158, 11, 0.05);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .leaderboard-row {
+            display: grid;
+            grid-template-columns: 80px 1fr 110px 110px 110px 130px;
+            padding: 1.1rem 1.5rem;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .leaderboard-row:last-child {
+            border-bottom: none;
+        }
+
+        .leaderboard-row:hover {
+            background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, transparent 100%);
+        }
+
+        .rank {
+            display: flex;
+            align-items: center;
+        }
+
+        .rank-badge {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .rank-1 .rank-badge {
+            background: linear-gradient(135deg, #ffd700, #ffed4a);
+            color: #1a1a2e;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+        }
+
+        .rank-2 .rank-badge {
+            background: linear-gradient(135deg, #c0c0c0, #e2e8f0);
+            color: #1a1a2e;
+        }
+
+        .rank-3 .rank-badge {
+            background: linear-gradient(135deg, #cd7f32, #d97706);
+            color: #1a1a2e;
+        }
+
+        .rank-default .rank-badge {
+            background: var(--bg-card-hover);
+            color: var(--text-secondary);
+        }
+
+        .candidate-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .candidate-name {
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--text-primary);
+        }
+
+        .candidate-id {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-top: 0.2rem;
+        }
+
+        .score {
+            font-weight: 600;
+            font-size: 1.05rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .m1-score {
+            color: var(--primary-light);
+        }
+
+        .score-high {
+            color: var(--success-light);
+        }
+
+        .score-medium {
+            color: var(--accent-light);
+        }
+
+        .score-low {
+            color: #f87171;
+        }
+
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+            color: var(--accent-light);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .empty-state {
+            padding: 4rem;
+            text-align: center;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .info-box-icon {
+            font-size: 1.5rem;
+        }
+
+        .info-box-text {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .info-box-text strong {
+            color: var(--primary-light);
+        }
+
+        @media (max-width: 900px) {
+
+            .leaderboard-header,
+            .leaderboard-row {
+                grid-template-columns: 60px 1fr 80px 100px;
+            }
+
+            .leaderboard-header>*:nth-child(4),
+            .leaderboard-header>*:nth-child(5),
+            .leaderboard-row>*:nth-child(4),
+            .leaderboard-row>*:nth-child(5) {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🎯</div>
+            <h1>Model 1 → Round 1</h1>
+            <p class="subtitle">METIS Core Evaluation Results</p>
+            <span class="badge">✓ Pre-Qualified Candidates</span>
+        </header>
+
+        <div class="info-box">
+            <span class="info-box-icon">ℹ️</span>
+            <span class="info-box-text">
+                <strong>Model 1 (METIS Core)</strong> evaluates candidates and passes them directly to <strong>Round
+                    1</strong>.
+                These candidates have been pre-qualified and are ready for the next evaluation stage.
+            </span>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="loadModel1Evals()">
+                📁 Load Model 1 Evaluations
+            </button>
+            <button class="btn btn-secondary" onclick="loadDemo()">
+                🚀 Demo Data
+            </button>
+            <button class="btn btn-secondary" onclick="generateRandom()">
+                🎲 Random (20)
+            </button>
+        </div>
+
+        <div id="stats-container" class="stats-grid"></div>
+
+        <div id="leaderboard-container" class="leaderboard">
+            <div class="empty-state">
+                <div class="empty-state-icon">📊</div>
+                <h3>No Candidates Loaded</h3>
+                <p style="color: var(--text-secondary); margin-top: 0.5rem;">
+                    Click "Load Model 1 Evaluations" to see Round 1 qualified candidates
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentData = null;
+        let dataSource = '';
+
+        async function loadModel1Evals() {
+            showLoading();
+            dataSource = 'Model 1 (METIS Core)';
+            try {
+                const response = await fetch('/api/scoring/model1-eval');
+                const data = await response.json();
+
+                if (data.success) {
+                    currentData = data;
+                    renderStats(data.statistics, data.leaderboard);
+                    renderLeaderboard(data.leaderboard.entries);
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Failed to connect. Is the server running?');
+            }
+        }
+
+        async function loadDemo() {
+            showLoading();
+            dataSource = 'Demo Data';
+            try {
+                const response = await fetch('/api/scoring/demo');
+                const data = await response.json();
+
+                if (data.success) {
+                    currentData = data;
+                    renderStats(data.statistics, data.leaderboard);
+                    renderLeaderboard(data.leaderboard.entries);
+                }
+            } catch (error) {
+                showError('Failed to load demo data');
+            }
+        }
+
+        async function generateRandom() {
+            showLoading();
+            dataSource = 'Generated Data';
+            try {
+                const response = await fetch('/api/scoring/generate?num_candidates=20');
+                const data = await response.json();
+
+                if (data.success) {
+                    currentData = data;
+                    renderStats(data.statistics, data.leaderboard);
+                    renderLeaderboard(data.leaderboard.entries);
+                }
+            } catch (error) {
+                showError('Failed to generate data');
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('leaderboard-container').innerHTML =
+                '<div class="loading"><div class="spinner"></div><p>Loading candidates...</p></div>';
+        }
+
+        function showError(message) {
+            document.getElementById('leaderboard-container').innerHTML =
+                `<div class="empty-state">
+                    <div class="empty-state-icon">⚠️</div>
+                    <h3>Error</h3>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem;">${message}</p>
+                </div>`;
+        }
+
+        function renderStats(stats, leaderboard) {
+            const container = document.getElementById('stats-container');
+            const avgScore = stats.score_distribution?.final_score?.avg || 'N/A';
+            const maxScore = stats.score_distribution?.final_score?.max || 'N/A';
+            const total = stats.total_applicants || leaderboard?.total_applicants || 0;
+            const round1 = stats.shortlist_summary?.round_1 || leaderboard?.round_1_count || total;
+
+            container.innerHTML = `
+                <div class="stat-card total">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value">${total}</div>
+                    <div class="stat-label">Total Evaluated</div>
+                </div>
+                <div class="stat-card round1">
+                    <div class="stat-icon">✓</div>
+                    <div class="stat-value">${round1}</div>
+                    <div class="stat-label">Round 1 Qualified</div>
+                </div>
+                <div class="stat-card avg">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-value">${avgScore}</div>
+                    <div class="stat-label">Avg Score</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-value">${maxScore}</div>
+                    <div class="stat-label">Top Score</div>
+                </div>
+            `;
+        }
+
+        function renderLeaderboard(entries) {
+            const container = document.getElementById('leaderboard-container');
+
+            if (!entries || entries.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <h3>No Candidates Found</h3>
+                        <p style="color: var(--text-secondary);">No candidates available</p>
+                    </div>`;
+                return;
+            }
+
+            let html = `
+                <div class="leaderboard-title">
+                    <span class="icon">🏆</span>
+                    Round 1 Qualified Candidates
+                    <span class="source-badge">${dataSource}</span>
+                </div>
+                <div class="leaderboard-header">
+                    <div>Rank</div>
+                    <div>Candidate</div>
+                    <div>M1 Score</div>
+                    <div>Integrity</div>
+                    <div>Final</div>
+                    <div>Status</div>
+                </div>
+            `;
+
+            entries.forEach(entry => {
+                const rankClass = entry.rank <= 3 ? `rank-${entry.rank}` : 'rank-default';
+                const scoreClass = getScoreClass(entry.final_score);
+                const m1Score = entry.model1_score || entry.weighted_score || '-';
+
+                html += `
+                    <div class="leaderboard-row">
+                        <div class="rank ${rankClass}">
+                            <span class="rank-badge">${entry.rank}</span>
+                        </div>
+                        <div class="candidate-info">
+                            <span class="candidate-name">${entry.candidate_name}</span>
+                            <span class="candidate-id">${entry.candidate_id}</span>
+                        </div>
+                        <div class="score m1-score">${typeof m1Score === 'number' ? m1Score.toFixed(0) : m1Score}</div>
+                        <div class="score score-high">${entry.integrity_score.toFixed(0)}%</div>
+                        <div class="score ${scoreClass}">${entry.final_score.toFixed(1)}</div>
+                        <div>
+                            <span class="status-badge">
+                                ✓ Round 1
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function getScoreClass(score) {
+            if (score >= 60) return 'score-high';
+            if (score >= 45) return 'score-medium';
+            return 'score-low';
+        }
+
+        // Auto-load Model 1 evaluations on page load
+        window.onload = () => loadModel1Evals();
+    </script>
+</body>
+
+</html>

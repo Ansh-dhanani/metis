@@ -1,0 +1,40 @@
+Tirth Bhanderi
+Rajkot, Gujarat, India
++91 9737006181 | bhanderitirth94@gmail.com
+linkedin.com/in/tirth-bhanderi-345763289
+
+Summary
+AI and ML Engineering student and proficient Android and Flutter Developer with experience in Java, Python, and Spring Boot development.
+
+Experience
+Android Developer Intern | 9Brainz, Rajkot, Gujarat
+December 2024 – April 2025
+• Developed and enhanced Openly, a social media application built using the Flutter framework and Firebase.
+• Implemented real-time communication features including video calling, chat, and post sharing.
+• Integrated Firebase Authentication, Firestore, and Cloud Storage to manage user data and media.
+• Built core functionality for profile editing and a bookmarking system to improve user engagement.
+
+Education
+Bachelor of Technology in Artificial Intelligence and Machine Learning
+CHARUSAT
+Expected 2027
+
+Diploma in Computer Engineering
+RK University
+September 2023 – April 2025
+GPA: 9.63
+
+Secondary School Certificate (10th)
+SKP School, Rajkot
+June 2019
+Result: 98.16 PR
+
+Technical Skills
+Programming Languages: Java, Python, JavaScript, Dart, SQL
+Frameworks and SDKs: Flutter, Android SDK, Spring Core, Spring Boot, GetX, Bloc/Cubit
+Database and Backend: MySQL,MongoDB,Firebase (Firestore, Realtime Database), SQLite, REST API Integration
+Tools and Other: Git, GitHub, Retrieval Augmented Generation (RAG).
+
+Projects
+Openly Social Media App
+• A comprehensive social platform featuring real-time chat, video calling, and content discovery tools built with Flutter and Firebase.
