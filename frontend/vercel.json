@@ -1,0 +1,11 @@
+{
+  "buildCommand": "bun run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm install -g bun && bun install",
+  "devCommand": "bun run dev",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "",
+    "NEXT_PUBLIC_WS_URL": ""
+  }
+}

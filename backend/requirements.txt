@@ -3,11 +3,10 @@ Flask-CORS
 pymongo
 python-dotenv
 
-# Model Dependencies (Resume Analysis & AI Interview)
-httpx>=0.28.0
-pdfplumber>=0.11.0
-rich>=13.9.0
-groq>=0.4.0
+# Production WSGI Server
+gunicorn>=21.2.0
+gevent>=23.9.1
+
 gtts>=2.5.4
 flask-socketio>=5.3.6
 eventlet>=0.33.3

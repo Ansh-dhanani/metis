@@ -14,8 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, TrendingUp, Award, ArrowRight } from 'lucide-react';
-import { toast } from 'sonner';
-
+import { toast } from 'sonner';import config from '@/lib/config/api';
 interface EvaluationData {
   finalScore: number;
   round1Score: number;

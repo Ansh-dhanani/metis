@@ -10,14 +10,24 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '.env'), override=True)
 app = Flask(__name__)
 app.url_map.strict_slashes = False  # Disable strict trailing slash enforcement
 
+# Production configuration
+IS_PRODUCTION = os.getenv('FLASK_ENV') == 'production'
+
+if IS_PRODUCTION:
+    from config.production import configure_production
+    configure_production(app)
+
 # CORS Configuration
 # Allow requests from frontend (development and production)
+frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+production_url = os.getenv('PRODUCTION_FRONTEND_URL', 'https://metis.vercel.app')
+
 CORS(app, resources={
     r"/api/*": {
         "origins": [
-            "http://localhost:3000",  # Development frontend
+            frontend_url,
             "http://127.0.0.1:3000",
-            "https://metis.vercel.app",  # Production frontend (update with your actual domain)
+            production_url,
             "https://*.vercel.app"  # Vercel preview deployments
         ],
         "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -27,7 +37,11 @@ CORS(app, resources={
 })
 
 # Initialize SocketIO for live interviews
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+socketio = SocketIO(
+    app, 
+    cors_allowed_origins=[frontend_url, production_url, "https://*.vercel.app"],
+    async_mode='eventlet'
+)
 
 # MongoDB Configuration
 MONGO_URI = os.getenv("MONGO_URI", os.getenv("DATABASE_URL"))
@@ -70,5 +84,13 @@ def hello_world():
 
 if __name__ == "__main__":
     PORT = int(os.getenv("PORT", 5000))
+    DEBUG = os.getenv('FLASK_ENV') != 'production'
+    
+    if DEBUG:
+        print(f"🚀 Development server starting on http://0.0.0.0:{PORT}")
+        print(f"📡 WebSocket server ready for live interviews")
+    else:
+        app.logger.info(f"Production server starting on port {PORT}")
+    
     # Use socketio.run instead of app.run for WebSocket support
-    socketio.run(app, host='0.0.0.0', port=PORT, debug=True)
+    socketio.run(app, host='0.0.0.0', port=PORT, debug=DEBUG)

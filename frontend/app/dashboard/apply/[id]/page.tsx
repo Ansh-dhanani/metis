@@ -20,6 +20,7 @@ import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Plus
 import { toast } from 'sonner';
 import { getErrorMessage, handleError } from '@/lib/utils/error-handler';
 import type { Job } from '@/lib/api/types';
+import config from '@/lib/config/api';
 
 type Step = 'upload' | 'review' | 'confirm' | 'complete';
 
@@ -185,7 +186,7 @@ export default function JobApplicationPage() {
         const applicationId = response.applicationId || response._id;
         
         // Call METIS evaluation for this specific application
-        await fetch(`http://localhost:5000/api/evaluation/evaluate/${applicationId}`, {
+        await fetch(`${config.apiUrl}/api/evaluation/evaluate/${applicationId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

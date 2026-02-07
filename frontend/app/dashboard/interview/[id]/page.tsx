@@ -18,6 +18,7 @@ import { Mic, MicOff, Send, Loader2, CheckCircle2, Volume2 } from 'lucide-react'
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
 import io, { Socket } from 'socket.io-client';
+import config from '@/lib/config/api';
 
 interface Message {
   role: 'ai' | 'user';
@@ -51,7 +52,7 @@ export default function InterviewPage() {
 
   useEffect(() => {
     // Connect to WebSocket
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io(config.wsUrl);
     setSocket(newSocket);
 
     // Listen for AI responses
@@ -109,12 +110,12 @@ export default function InterviewPage() {
     try {
       // Fetch job details and application data
       const [jobResponse, appResponse] = await Promise.all([
-        fetch(`http://localhost:5000/api/jobs/${jobId}`, {
+        fetch(`${config.apiUrl}/api/jobs/${jobId}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
           },
         }),
-        fetch(`http://localhost:5000/api/applications/${applicationId}`, {
+        fetch(`${config.apiUrl}/api/applications/${applicationId}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
           },
@@ -228,7 +229,7 @@ Resume Summary:
 
     // PIPELINE STEP 3: Auto-evaluate interview
     try {
-      const response = await fetch(`http://localhost:5000/api/evaluation/evaluate-interview/${applicationId}`, {
+      const response = await fetch(`${config.apiUrl}/api/evaluation/evaluate-interview/${applicationId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
