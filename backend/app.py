@@ -47,7 +47,7 @@ if not IS_VERCEL:
     socketio = SocketIO(
         app, 
         cors_allowed_origins=[frontend_url, production_url, "https://*.vercel.app"],
-        async_mode='eventlet'
+        async_mode='threading'
     )
 
 # MongoDB Configuration (with error handling)
