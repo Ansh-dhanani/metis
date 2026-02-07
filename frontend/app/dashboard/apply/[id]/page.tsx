@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { jobsService, authService, applicationsService } from '@/lib/api/services';
 import { useAuth } from '@/contexts/auth-context';
-import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getErrorMessage, handleError } from '@/lib/utils/error-handler';
 import type { Job } from '@/lib/api/types';
@@ -96,26 +96,28 @@ export default function JobApplicationPage() {
 
     setIsParsing(true);
     try {
-      const parsedData = await authService.uploadResume(resumeFile);
+      const response = await authService.uploadResume(resumeFile);
+      console.log('Resume upload response:', response);
       
       // Update profile data with parsed information
       setProfileData(prev => ({
         ...prev,
-        skills: parsedData.skills || prev.skills || [],
-        education: parsedData.education || prev.education || [],
-        projects: parsedData.projects || prev.projects || [],
-        certifications: parsedData.certifications || prev.certifications || [],
-        phone: parsedData.phone || prev.phone || '',
-        linkedinUrl: parsedData.linkedinUrl || prev.linkedinUrl || '',
-        githubUrl: parsedData.githubUrl || prev.githubUrl || '',
-        portfolioUrl: parsedData.portfolioUrl || prev.portfolioUrl || '',
-        experience: parsedData.experience || prev.experience || {},
+        skills: response.skills || prev.skills || [],
+        education: response.education || prev.education || [],
+        projects: response.projects || prev.projects || [],
+        certifications: response.certifications || prev.certifications || [],
+        phone: response.phone || prev.phone || '',
+        linkedinUrl: response.linkedinUrl || prev.linkedinUrl || '',
+        githubUrl: response.githubUrl || prev.githubUrl || '',
+        portfolioUrl: response.portfolioUrl || prev.portfolioUrl || '',
+        experience: response.experience || prev.experience || {},
       }));
 
       setCurrentStep('review');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to parse resume:', error);
-      alert('Failed to parse resume. Please try again or enter details manually.');
+      const errorMessage = error?.message || 'Failed to parse resume. Please try again or enter details manually.';
+      alert(errorMessage);
     } finally {
       setIsParsing(false);
     }
@@ -340,10 +342,218 @@ export default function JobApplicationPage() {
                   <Textarea
                     id="experience"
                     rows={4}
-                    value={profileData.experience}
+                    value={typeof profileData.experience === 'string' ? profileData.experience : JSON.stringify(profileData.experience, null, 2)}
                     onChange={(e) => handleProfileUpdate('experience', e.target.value)}
                     placeholder="Describe your work experience..."
                   />
+                </div>
+
+                {/* Dynamic Education Fields */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label>Education</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleProfileUpdate('education', [...profileData.education, { degree: '', institution: '', duration: '', details: '' }])}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Education
+                    </Button>
+                  </div>
+                  {profileData.education.map((edu: any, idx: number) => (
+                    <div key={idx} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-medium text-sm">Education {idx + 1}</h4>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleProfileUpdate('education', profileData.education.filter((_: any, i: number) => i !== idx))}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Degree/Program</Label>
+                          <Input
+                            value={edu.degree || ''}
+                            onChange={(e) => {
+                              const updated = [...profileData.education];
+                              updated[idx] = { ...updated[idx], degree: e.target.value };
+                              handleProfileUpdate('education', updated);
+                            }}
+                            placeholder="e.g., Bachelor of Science in Computer Science"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Institution</Label>
+                          <Input
+                            value={edu.institution || ''}
+                            onChange={(e) => {
+                              const updated = [...profileData.education];
+                              updated[idx] = { ...updated[idx], institution: e.target.value };
+                              handleProfileUpdate('education', updated);
+                            }}
+                            placeholder="e.g., MIT"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Duration</Label>
+                          <Input
+                            value={edu.duration || ''}
+                            onChange={(e) => {
+                              const updated = [...profileData.education];
+                              updated[idx] = { ...updated[idx], duration: e.target.value };
+                              handleProfileUpdate('education', updated);
+                            }}
+                            placeholder="e.g., 2018 - 2022"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Details (Optional)</Label>
+                          <Input
+                            value={edu.details || ''}
+                            onChange={(e) => {
+                              const updated = [...profileData.education];
+                              updated[idx] = { ...updated[idx], details: e.target.value };
+                              handleProfileUpdate('education', updated);
+                            }}
+                            placeholder="e.g., GPA, honors"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {profileData.education.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4 border rounded-lg border-dashed">
+                      No education added. Click &quot;Add Education&quot; to add your educational background.
+                    </p>
+                  )}
+                </div>
+
+                {/* Dynamic Projects Fields */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label>Projects</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleProfileUpdate('projects', [...profileData.projects, { name: '', description: '', technologies: '', url: '' }])}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Project
+                    </Button>
+                  </div>
+                  {profileData.projects.map((project: any, idx: number) => (
+                    <div key={idx} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-medium text-sm">Project {idx + 1}</h4>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleProfileUpdate('projects', profileData.projects.filter((_: any, i: number) => i !== idx))}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Project Name</Label>
+                          <Input
+                            value={project.name || project.title || ''}
+                            onChange={(e) => {
+                              const updated = [...profileData.projects];
+                              updated[idx] = { ...updated[idx], name: e.target.value };
+                              handleProfileUpdate('projects', updated);
+                            }}
+                            placeholder="e.g., E-commerce Platform"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Description</Label>
+                          <Textarea
+                            rows={2}
+                            value={project.description || ''}
+                            onChange={(e) => {
+                              const updated = [...profileData.projects];
+                              updated[idx] = { ...updated[idx], description: e.target.value };
+                              handleProfileUpdate('projects', updated);
+                            }}
+                            placeholder="Brief description of the project..."
+                          />
+                        </div>
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Technologies</Label>
+                            <Input
+                              value={Array.isArray(project.technologies) ? project.technologies.join(', ') : (project.technologies || '')}
+                              onChange={(e) => {
+                                const updated = [...profileData.projects];
+                                updated[idx] = { ...updated[idx], technologies: e.target.value };
+                                handleProfileUpdate('projects', updated);
+                              }}
+                              placeholder="e.g., React, Node.js, MongoDB"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Project URL (Optional)</Label>
+                            <Input
+                              value={project.url || ''}
+                              onChange={(e) => {
+                                const updated = [...profileData.projects];
+                                updated[idx] = { ...updated[idx], url: e.target.value };
+                                handleProfileUpdate('projects', updated);
+                              }}
+                              placeholder="https://..."
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {profileData.projects.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4 border rounded-lg border-dashed">
+                      No projects added. Click &quot;Add Project&quot; to showcase your work.
+                    </p>
+                  )}
+                </div>
+
+                {/* Dynamic Certifications Fields */}
+                <div className="space-y-2">
+                  <Label>Certifications</Label>
+                  <div className="flex flex-wrap gap-2 p-3 border rounded-lg min-h-[60px]">
+                    {profileData.certifications.map((cert: any, idx: number) => (
+                      <Badge key={idx} variant="secondary">
+                        {typeof cert === 'string' ? cert : cert.name || cert.title || 'Certification'}
+                        <button
+                          type="button"
+                          onClick={() => handleProfileUpdate('certifications', profileData.certifications.filter((_: any, i: number) => i !== idx))}
+                          className="ml-1 hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add a certification (press Enter)"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          const input = e.currentTarget;
+                          if (input.value.trim()) {
+                            handleProfileUpdate('certifications', [...profileData.certifications, input.value.trim()]);
+                            input.value = '';
+                          }
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -454,8 +664,84 @@ export default function JobApplicationPage() {
                     <div>
                       <h3 className="font-semibold mb-2">Experience</h3>
                       <p className="text-sm text-muted-foreground whitespace-pre-line">
-                        {profileData.experience}
+                        {typeof profileData.experience === 'string' 
+                          ? profileData.experience 
+                          : JSON.stringify(profileData.experience, null, 2)}
                       </p>
+                    </div>
+                  )}
+
+                  {profileData.education && profileData.education.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold mb-2">Education</h3>
+                      <div className="space-y-2">
+                        {profileData.education.map((edu: any, idx: number) => (
+                          <div key={idx} className="text-sm">
+                            <p className="font-medium">{edu.degree || edu.institution || 'Education'}</p>
+                            {edu.institution && <p className="text-muted-foreground">{edu.institution}</p>}
+                            {edu.duration && <p className="text-xs text-muted-foreground">{edu.duration}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {profileData.projects && profileData.projects.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold mb-2">Projects ({profileData.projects.length})</h3>
+                      <div className="space-y-2">
+                        {profileData.projects.map((project: any, idx: number) => (
+                          <div key={idx} className="text-sm">
+                            <p className="font-medium">{project.name || project.title || `Project ${idx + 1}`}</p>
+                            {project.description && <p className="text-muted-foreground text-xs">{project.description}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {profileData.certifications && profileData.certifications.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold mb-2">Certifications</h3>
+                      <div className="flex flex-wrap gap-1">
+                        {profileData.certifications.map((cert: any, idx: number) => (
+                          <Badge key={idx} variant="outline" className="text-xs">
+                            {typeof cert === 'string' ? cert : cert.name || cert.title || 'Certification'}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(profileData.linkedinUrl || profileData.githubUrl || profileData.portfolioUrl) && (
+                    <div>
+                      <h3 className="font-semibold mb-2">Links</h3>
+                      <div className="space-y-1 text-sm">
+                        {profileData.linkedinUrl && (
+                          <p className="text-muted-foreground">
+                            <span className="font-medium">LinkedIn:</span>{' '}
+                            <a href={profileData.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                              {profileData.linkedinUrl}
+                            </a>
+                          </p>
+                        )}
+                        {profileData.githubUrl && (
+                          <p className="text-muted-foreground">
+                            <span className="font-medium">GitHub:</span>{' '}
+                            <a href={profileData.githubUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                              {profileData.githubUrl}
+                            </a>
+                          </p>
+                        )}
+                        {profileData.portfolioUrl && (
+                          <p className="text-muted-foreground">
+                            <span className="font-medium">Portfolio:</span>{' '}
+                            <a href={profileData.portfolioUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                              {profileData.portfolioUrl}
+                            </a>
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

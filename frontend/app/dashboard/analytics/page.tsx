@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { assessmentsService, rankingsService } from '@/lib/api/services';
-import { Award, TrendingUp, Users, Target, Download, ClipboardList } from 'lucide-react';
+import { Award, TrendingUp, Users, Download, ClipboardList } from 'lucide-react';
 import { handleError } from '@/lib/utils/error-handler';
 import type { Assessment, CandidateRanking } from '@/lib/api/types';
 
@@ -298,27 +298,5 @@ export default function AnalyticsPage() {
       </div>
       </DashboardLayout>
     </ProtectedRoute>
-  );
-}
-
-function ClipboardList({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-      <path d="M12 11h4"></path>
-      <path d="M12 16h4"></path>
-      <path d="M8 11h.01"></path>
-      <path d="M8 16h.01"></path>
-    </svg>
   );
 }

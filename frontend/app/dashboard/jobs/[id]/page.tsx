@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/protected-route';
 import { DashboardLayout } from '@/components/dashboard-layout';
-import { jobsService, assessmentsService, rankingsService, applicationsService } from '@/lib/api/services';
+import { jobsService, assessmentsService, rankingsService, applicationsService, evaluationService, advancedRankingService } from '@/lib/api/services';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
-import { ArrowLeft, Users, BarChart3, RefreshCw, FileText, Award, TrendingUp, UserCheck } from 'lucide-react';
+import { ArrowLeft, Users, BarChart3, RefreshCw, FileText, Award, UserCheck, Sparkles, Zap } from 'lucide-react';
 import type { Job, Assessment, CandidateRanking } from '@/lib/api/types';
 import { formatDate, getScoreColor } from '@/lib/utils';
 import { DataTable } from '@/components/data-table/data-table';
@@ -61,6 +61,8 @@ export default function JobDetailsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingRankings, setIsGeneratingRankings] = useState(false);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isGeneratingAdvancedRankings, setIsGeneratingAdvancedRankings] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<AppColumnType | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -107,6 +109,50 @@ export default function JobDetailsPage() {
       handleError(error, 'Failed to generate rankings. Please try again.');
     } finally {
       setIsGeneratingRankings(false);
+    }
+  };
+
+  const handleBatchEvaluate = async () => {
+    if (!confirm(`Evaluate all ${applications.length} applications with METIS AI?`)) {
+      return;
+    }
+
+    setIsEvaluating(true);
+    try {
+      const result = await evaluationService.batchEvaluate(jobId);
+      toast.success(result.message || 'Applications evaluated successfully');
+      
+      // Refresh applications to show METIS scores
+      const applicationsData = await applicationsService.getJobApplications(jobId);
+      setApplications(applicationsData as any || []);
+    } catch (error) {
+      handleError(error, 'Failed to evaluate applications. Please try again.');
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
+
+  const handleGenerateAdvancedRankings = async () => {
+    setIsGeneratingAdvancedRankings(true);
+    try {
+      const { leaderboard } = await advancedRankingService.generateRankings(jobId);
+      toast.success(
+        <div>
+          <div className="font-semibold">Advanced Rankings Generated!</div>
+          <div className="text-sm mt-1">
+            Round 1: {leaderboard.round_1_count} • Round 2: {leaderboard.round_2_count}
+          </div>
+        </div>,
+        { duration: 5000 }
+      );
+      
+      // Refresh to show rankings
+      const applicationsData = await applicationsService.getJobApplications(jobId);
+      setApplications(applicationsData as any || []);
+    } catch (error) {
+      handleError(error, 'Failed to generate advanced rankings. Please try again.');
+    } finally {
+      setIsGeneratingAdvancedRankings(false);
     }
   };
 
@@ -263,12 +309,35 @@ export default function JobDetailsPage() {
                 </p>
               </div>
             </div>
-            {completedAssessments.length > 0 && (
-              <Button onClick={handleGenerateRankings} disabled={isGeneratingRankings}>
-                <RefreshCw className={`mr-2 h-4 w-4 ${isGeneratingRankings ? 'animate-spin' : ''}`} />
-                {isGeneratingRankings ? 'Generating...' : 'Generate Rankings'}
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {applications.length > 0 && (
+                <Button 
+                  onClick={handleBatchEvaluate} 
+                  disabled={isEvaluating}
+                  variant="outline"
+                  className="border-purple-200 hover:bg-purple-50"
+                >
+                  <Sparkles className={`mr-2 h-4 w-4 ${isEvaluating ? 'animate-spin' : ''}`} />
+                  {isEvaluating ? 'Evaluating...' : 'METIS Evaluate All'}
+                </Button>
+              )}
+              {applications.length > 0 && (
+                <Button 
+                  onClick={handleGenerateAdvancedRankings} 
+                  disabled={isGeneratingAdvancedRankings}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                >
+                  <Zap className={`mr-2 h-4 w-4 ${isGeneratingAdvancedRankings ? 'animate-spin' : ''}`} />
+                  {isGeneratingAdvancedRankings ? 'Generating...' : 'Advanced Rankings'}
+                </Button>
+              )}
+              {completedAssessments.length > 0 && (
+                <Button onClick={handleGenerateRankings} disabled={isGeneratingRankings} variant="outline">
+                  <RefreshCw className={`mr-2 h-4 w-4 ${isGeneratingRankings ? 'animate-spin' : ''}`} />
+                  {isGeneratingRankings ? 'Generating...' : 'Basic Rankings'}
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Stats */}

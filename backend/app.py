@@ -1,6 +1,7 @@
 import os
 from flask import Flask
 from flask_cors import CORS
+from flask_socketio import SocketIO
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -25,6 +26,9 @@ CORS(app, resources={
     }
 })
 
+# Initialize SocketIO for live interviews
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+
 # MongoDB Configuration
 MONGO_URI = os.getenv("MONGO_URI", os.getenv("DATABASE_URL"))
 client = MongoClient(MONGO_URI)
@@ -37,13 +41,23 @@ from routes.rankings import rankings_bp
 from routes.interview import interview_bp
 from routes.users import users_bp
 from routes.applications import applications_bp
+from routes.evaluation import evaluation_bp
+from routes.advanced_ranking import advanced_ranking_bp
+from routes.live_interview import live_interview_bp, init_socketio
 
+# Register blueprints
 app.register_blueprint(jobs_bp, url_prefix='/api/jobs')
 app.register_blueprint(assessments_bp, url_prefix='/api/assessments')
 app.register_blueprint(rankings_bp, url_prefix='/api/rankings')
 app.register_blueprint(interview_bp, url_prefix='/api/interview')
 app.register_blueprint(users_bp, url_prefix='/api/users')
 app.register_blueprint(applications_bp, url_prefix='/api/applications')
+app.register_blueprint(evaluation_bp, url_prefix='/api/evaluation')
+app.register_blueprint(advanced_ranking_bp, url_prefix='/api/advanced-ranking')
+app.register_blueprint(live_interview_bp, url_prefix='/api/live-interview')
+
+# Initialize SocketIO handlers
+init_socketio(socketio)
 
 @app.route("/")
 def hello_world():
@@ -56,4 +70,5 @@ def hello_world():
 
 if __name__ == "__main__":
     PORT = int(os.getenv("PORT", 5000))
-    app.run(host='0.0.0.0', port=PORT, debug=True)
+    # Use socketio.run instead of app.run for WebSocket support
+    socketio.run(app, host='0.0.0.0', port=PORT, debug=True)

@@ -26,6 +26,7 @@ export default function JobsPage() {
   const pathname = usePathname();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('open');
 
   const fetchJobs = async () => {
@@ -47,16 +48,21 @@ export default function JobsPage() {
   }, [user, pathname]);
 
   const handleDeleteJob = async (jobId: string, jobTitle: string) => {
+    if (isDeleting) return; // Prevent multiple deletions at once
+    
     if (!confirm(`Are you sure you want to delete "${jobTitle}"? This will also delete all applications, assessments, and rankings associated with this job. This action cannot be undone.`)) {
       return;
     }
 
+    setIsDeleting(jobId);
     try {
       await jobsService.deleteJob(jobId);
+      await fetchJobs();
       toast.success('Job deleted successfully');
-      fetchJobs();
     } catch (error) {
       handleError(error, 'Failed to delete job. Please try again.');
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -179,8 +185,13 @@ export default function JobsPage() {
                               variant="destructive" 
                               size="icon"
                               onClick={() => handleDeleteJob(job._id, job.title)}
+                              disabled={isDeleting === job._id}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              {isDeleting === job._id ? (
+                                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
                             </Button>
                           </div>
                         </CardContent>
@@ -243,8 +254,13 @@ export default function JobsPage() {
                               variant="destructive" 
                               size="icon"
                               onClick={() => handleDeleteJob(job._id, job.title)}
+                              disabled={isDeleting === job._id}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              {isDeleting === job._id ? (
+                                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
                             </Button>
                           </div>
                         </CardContent>

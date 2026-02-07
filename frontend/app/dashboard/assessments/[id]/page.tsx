@@ -16,7 +16,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Clock, CheckCircle, ChevronRight } from 'lucide-react';
-import type { Assessment, Question } from '@/lib/api/types';
+import type { Assessment } from '@/lib/api/types';
 import Link from 'next/link';
 
 export default function AssessmentPage() {

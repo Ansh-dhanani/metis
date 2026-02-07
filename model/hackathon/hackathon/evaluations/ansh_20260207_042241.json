@@ -1,0 +1,24 @@
+{
+  "model": "metis_core_v1",
+  "overall_score": 52,
+  "section_scores": {
+    "skill_evidence": 18,
+    "project_authenticity": 15,
+    "professional_signals": 6,
+    "impact_outcomes": 0,
+    "resume_integrity": 13
+  },
+  "strength_signals": [
+    "GitHub shows 5 languages with real code",
+    "18 original repositories showing ownership",
+    "14 substantial codebases",
+    "2 portfolio projects with live demos/links"
+  ],
+  "risk_signals": [
+    "No work experience documented",
+    "No quantified achievements or metrics"
+  ],
+  "ats_flags": [],
+  "confidence_level": "high",
+  "final_reasoning": "Below average (52/100). Strengths: GitHub shows 5 languages with real code. Concerns: No work experience documented."
+}

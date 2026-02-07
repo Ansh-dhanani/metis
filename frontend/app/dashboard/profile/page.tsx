@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { authService } from "@/lib/api/services";
+import { authService, evaluationService } from "@/lib/api/services";
 import { toast } from "sonner";
 import { handleError } from '@/lib/utils/error-handler';
-import { Loader2, Edit, Save, X, Plus, Trash2 } from "lucide-react";
+import { Loader2, Edit, Save, X, Plus, Trash2, Sparkles, Upload, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface Experience {
@@ -62,6 +62,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [profileData, setProfileData] = useState<ProfileData>({
     firstName: "",
     lastName: "",
@@ -250,6 +252,126 @@ export default function ProfilePage() {
     });
   };
 
+  const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    const allowedTypes = ['text/plain', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please upload a PDF or text file');
+      return;
+    }
+
+    setIsParsing(true);
+    toast.info('Parsing resume with AI...');
+
+    try {
+      // Read file content
+      const text = await file.text();
+
+      // Parse with METIS
+      const { parsed, evaluation } = await evaluationService.parseResume(
+        text,
+        profileData.githubUrl || undefined,
+        profileData.portfolioUrl || undefined
+      );
+
+      // Auto-fill profile from parsed data
+      setProfileData(prev => ({
+        ...prev,
+        firstName: parsed.name.split(' ')[0] || prev.firstName,
+        lastName: parsed.name.split(' ').slice(1).join(' ') || prev.lastName,
+        email: parsed.email || prev.email,
+        phone: parsed.phone || prev.phone,
+        skills: parsed.skills.length > 0 ? parsed.skills : prev.skills,
+        experience: parsed.experience.map(exp => ({
+          company: exp.company,
+          position: exp.title,
+          duration: exp.duration,
+          description: exp.description
+        })),
+        education: parsed.education.map(edu => ({
+          institution: edu.institution,
+          degree: edu.degree,
+          field: '',
+          year: edu.year
+        })),
+        projects: parsed.projects.map(proj => ({
+          name: proj.name,
+          description: proj.description,
+          technologies: proj.technologies,
+          link: ''
+        })),
+        certifications: parsed.certifications
+      }));
+
+      setIsEditing(true);
+
+      // Show METIS evaluation results
+      const scoreColor = evaluation.overall_score >= 75 ? 'text-green-600' :
+                        evaluation.overall_score >= 55 ? 'text-yellow-600' : 'text-red-600';
+
+      toast.success(
+        <div>
+          <div className="font-semibold">Resume parsed successfully!</div>
+          <div className={`text-sm ${scoreColor}`}>
+            METIS Score: {evaluation.overall_score}/100
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {evaluation.confidence_level.toUpperCase()} confidence
+          </div>
+        </div>,
+        { duration: 5000 }
+      );
+
+      // Auto-save the parsed data
+      await authService.updateProfile({
+        ...profileData,
+        firstName: parsed.name.split(' ')[0] || profileData.firstName,
+        lastName: parsed.name.split(' ').slice(1).join(' ') || profileData.lastName,
+        email: parsed.email || profileData.email,
+        phone: parsed.phone || profileData.phone,
+        skills: parsed.skills.length > 0 ? parsed.skills : profileData.skills,
+        experience: parsed.experience.map(exp => ({
+          company: exp.company,
+          position: exp.title,
+          duration: exp.duration,
+          description: exp.description
+        })),
+        education: parsed.education.map(edu => ({
+          institution: edu.institution,
+          degree: edu.degree,
+          field: '',
+          year: edu.year
+        })),
+        projects: parsed.projects.map(proj => ({
+          name: proj.name,
+          description: proj.description,
+          technologies: proj.technologies,
+          link: ''
+        })),
+        certifications: parsed.certifications
+      });
+
+      toast.success('Profile auto-saved with parsed data!');
+      setIsEditing(false);
+      loadProfile();
+
+    } catch (error) {
+      handleError(error, 'Failed to parse resume. Please try again.');
+    } finally {
+      setIsParsing(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -292,6 +414,62 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+
+        {/* AI Resume Parser Card */}
+        {profileData.role === 'candidate' && (
+          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">AI-Powered Resume Parser</CardTitle>
+                    <CardDescription>Upload your resume and let AI auto-fill your profile</CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Our METIS AI will automatically extract your experience, education, skills, and projects from your resume.
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={triggerFileUpload}
+                    disabled={isParsing}
+                    className="flex-1"
+                  >
+                    {isParsing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Parsing Resume...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload Resume (PDF/TXT)
+                      </>
+                    )}
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.txt"
+                    onChange={handleResumeUpload}
+                    className="hidden"
+                  />
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <FileText className="h-3 w-3" />
+                  <span>Supported formats: PDF, TXT • Max size: 5MB</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Basic Information */}
         <Card>

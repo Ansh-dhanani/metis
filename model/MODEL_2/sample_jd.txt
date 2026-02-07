@@ -1,0 +1,8 @@
+Senior Python Developer
+
+Requirements:
+- 5+ years of experience with Python and Django
+- Experience with AWD services (EC2, S3, RDS)
+- Strong understanding of REST APIs
+- Leadership skills and ability to mentor junior developers
+- Experience with Docker and Kubernetes

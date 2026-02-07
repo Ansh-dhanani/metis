@@ -1,0 +1,22 @@
+{
+  "model": "metis_core_v1",
+  "overall_score": 54,
+  "section_scores": {
+    "skill_evidence": 10,
+    "project_authenticity": 19,
+    "professional_signals": 9,
+    "impact_outcomes": 1,
+    "resume_integrity": 15
+  },
+  "strength_signals": [
+    "GitHub shows 5 languages with real code",
+    "7 original repositories showing ownership",
+    "5 substantial codebases"
+  ],
+  "risk_signals": [
+    "No quantified achievements or metrics"
+  ],
+  "ats_flags": [],
+  "confidence_level": "high",
+  "final_reasoning": "Below average (54/100). Strengths: GitHub shows 5 languages with real code. Concerns: No quantified achievements or metrics."
+}

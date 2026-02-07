@@ -8,3 +8,5 @@ export * from './assessments.service';
 export * from './rankings.service';
 export * from './interview.service';
 export * from './applications.service';
+export * from './evaluation.service';
+export * from './ranking.service';

@@ -4,7 +4,7 @@ import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header"
-import { Award, CheckCircle, Mail, Phone, X, RotateCcw, UserCheck } from "lucide-react"
+import { Award, CheckCircle, Mail, Phone, X, RotateCcw, UserCheck, Brain, TrendingUp } from "lucide-react"
 import { formatDate } from "@/lib/utils"
 
 export interface Application {
@@ -16,6 +16,17 @@ export interface Application {
   stage: string
   appliedAt: string
   assessmentScore?: number
+  metisEvaluation?: {
+    overall_score: number
+    section_scores?: Record<string, number>
+    confidence_level?: string
+  }
+  advancedRanking?: {
+    rank: number
+    weighted_score: number
+    final_score: number
+    status: 'round_1' | 'round_2' | 'rejected'
+  }
   profileSnapshot: {
     skills?: string[]
     phone?: string
@@ -105,6 +116,76 @@ export const createApplicationColumns = (
           <span className="font-semibold">{Math.round(score)}</span>
         </div>
       )
+    },
+  },
+  {
+    accessorKey: "metisScore",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="METIS AI" />
+    ),
+    cell: ({ row }) => {
+      const metis = row.original.metisEvaluation
+      if (!metis) {
+        return <span className="text-muted-foreground text-sm">-</span>
+      }
+      const score = Math.round(metis.overall_score)
+      const color = score >= 75 ? 'text-green-600' : score >= 55 ? 'text-yellow-600' : 'text-red-600'
+      return (
+        <div className="flex items-center gap-1">
+          <Brain className={`h-4 w-4 ${color}`} />
+          <span className={`font-semibold ${color}`}>{score}</span>
+          {metis.confidence_level && (
+            <Badge variant="outline" className="ml-1 text-xs">
+              {metis.confidence_level}
+            </Badge>
+          )}
+        </div>
+      )
+    },
+    sortingFn: (rowA, rowB) => {
+      const scoreA = rowA.original.metisEvaluation?.overall_score || 0
+      const scoreB = rowB.original.metisEvaluation?.overall_score || 0
+      return scoreA - scoreB
+    },
+  },
+  {
+    accessorKey: "ranking",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Ranking" />
+    ),
+    cell: ({ row }) => {
+      const ranking = row.original.advancedRanking
+      if (!ranking) {
+        return <span className="text-muted-foreground text-sm">-</span>
+      }
+      
+      const statusConfig = {
+        round_1: { label: 'Round 1', variant: 'default' as const, color: 'bg-blue-500' },
+        round_2: { label: 'Round 2', variant: 'secondary' as const, color: 'bg-green-500' },
+        rejected: { label: 'Rejected', variant: 'destructive' as const, color: 'bg-red-500' }
+      }
+      
+      const config = statusConfig[ranking.status]
+      
+      return (
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <TrendingUp className="h-3 w-3 text-muted-foreground" />
+            <span className="text-sm font-semibold">#{ranking.rank}</span>
+          </div>
+          <Badge variant={config.variant} className="text-xs">
+            {config.label}
+          </Badge>
+          <span className="text-xs text-muted-foreground">
+            {Math.round(ranking.final_score)}
+          </span>
+        </div>
+      )
+    },
+    sortingFn: (rowA, rowB) => {
+      const rankA = rowA.original.advancedRanking?.rank || 999
+      const rankB = rowB.original.advancedRanking?.rank || 999
+      return rankA - rankB
     },
   },
   {

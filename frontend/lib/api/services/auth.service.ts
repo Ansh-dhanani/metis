@@ -66,26 +66,34 @@ export const authService = {
    * Upload resume for parsing
    */
   uploadResume: async (file: File): Promise<any> => {
+    // Send file as FormData to backend for parsing
     const formData = new FormData();
-    formData.append('resume', file);
+    formData.append('file', file);
     
-    // For MVP, we'll send the file as base64 text
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64 = reader.result as string;
-          const response = await api.post('/api/users/upload-resume', {
-            rawText: base64
-          });
-          resolve(response);
-        } catch (error) {
-          reject(error);
-        }
-      };
-      reader.onerror = reject;
-      reader.readAsText(file);
+    // Use fetch directly for FormData (api.post might not handle it correctly)
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    
+    console.log('Uploading resume:', file.name, 'Token:', token ? 'present' : 'missing');
+    
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/users/upload-resume`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
     });
+
+    console.log('Upload response status:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+      console.error('Upload error:', errorData);
+      throw new Error(errorData.error || 'Failed to upload resume');
+    }
+
+    const data = await response.json();
+    console.log('Parsed data received:', data);
+    return data;
   },
 
   /**

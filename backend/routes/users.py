@@ -125,18 +125,86 @@ def upload_resume():
     if user['role'] != 'candidate':
         return jsonify({"error": "Only candidates can upload resumes"}), 403
 
-    # Accept JSON with resume text for parsing
-    if not request.is_json:
-        return jsonify({"error": "Request must be JSON with 'rawText' field"}), 400
+    # Handle both file upload (FormData) and JSON text
+    raw_text = None
     
-    data = request.json
-    raw_text = data.get('rawText', '')
+    # Try file upload first
+    if 'file' in request.files:
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+        
+        print(f"Processing file upload: {file.filename}")
+        
+        # Read file content
+        try:
+            if file.filename.lower().endswith('.pdf'):
+                # Use METIS PDF extraction
+                from models.metis.resume_parser import extract_text_from_pdf
+                import tempfile
+                import os
+                
+                print("Extracting text from PDF...")
+                # Save temporarily
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+                    file.save(tmp_file.name)
+                    tmp_path = tmp_file.name
+                
+                try:
+                    raw_text = extract_text_from_pdf(tmp_path)
+                    print(f"Extracted {len(raw_text)} characters from PDF")
+                finally:
+                    # Clean up temp file
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+            else:
+                # Text file
+                print("Reading text file...")
+                raw_text = file.read().decode('utf-8', errors='ignore')
+                print(f"Read {len(raw_text)} characters from text file")
+        except Exception as e:
+            print(f"File reading error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": f"Failed to read file: {str(e)}"}), 400
+    
+    # Fallback to JSON with rawText
+    elif request.is_json:
+        data = request.json
+        raw_text = data.get('rawText', '')
+    else:
+        return jsonify({"error": "No file or rawText provided"}), 400
     
     if not raw_text:
         return jsonify({"error": "Resume text is required"}), 400
 
     # Parse resume with comprehensive extraction
-    parsed_data = ai_service.parse_resume(raw_text)
+    try:
+        # Use METIS parser
+        from models.metis.resume_parser import parse as metis_parse
+        print("Parsing resume with METIS parser...")
+        metis_data = metis_parse(raw_text)
+        print(f"METIS parsing complete. Found {len(metis_data.get('skills', []))} skills")
+        
+        # Convert METIS format to application format
+        parsed_data = {
+            "name": metis_data.get("name", ""),
+            "email": metis_data.get("email", ""),
+            "phone": metis_data.get("phone", ""),
+            "skills": metis_data.get("skills", []),
+            "linkedinUrl": metis_data.get("linkedin", ""),
+            "githubUrl": metis_data.get("github", ""),
+            "portfolioUrl": metis_data.get("portfolio", ""),
+            "education": metis_data.get("education", []),
+            "projects": metis_data.get("projects", []),
+            "certifications": metis_data.get("certifications", []),
+            "experience": metis_data.get("experience", []),
+        }
+                
+    except Exception as e:
+        # Fallback to basic AI service parser
+        print(f"METIS parser failed: {str(e)}, using fallback")
+        parsed_data = ai_service.parse_resume(raw_text)
     
     # Store only parsed data
     resume_data = {
@@ -166,7 +234,7 @@ def upload_resume():
     
     return jsonify({
         "message": "Resume processed successfully",
-        "resumeUrl": resume_url,
+        "parsedData": parsed_data,
         "skills": parsed_data.get("skills", []),
         "experience": parsed_data.get("experience", {}),
         "education": parsed_data.get("education", []),
