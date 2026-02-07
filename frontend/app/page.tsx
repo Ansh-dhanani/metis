@@ -39,32 +39,35 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="container flex flex-col items-center gap-8 py-24 md:py-32">
-        <Badge variant="secondary" className="gap-1">
-          <Sparkles className="h-3 w-3" />
-          AI-Powered Recruitment
-        </Badge>
-        
-        <div className="flex flex-col items-center gap-4 text-center">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-            Smart Hiring Made Simple
-          </h1>
-          <p className="max-w-[42rem] text-lg text-muted-foreground sm:text-xl">
-            Streamline your recruitment process with AI-powered candidate ranking, 
-            automated assessments, and intelligent matching.
-          </p>
-        </div>
-        
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <Button size="lg" asChild>
-            <Link href="/employer/dashboard">
-              Start Hiring
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-          <Button size="lg" variant="outline" asChild>
-            <Link href="/jobs">I'm Looking for Jobs</Link>
-          </Button>
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-purple-500/5 to-pink-500/5" />
+        <div className="container relative flex flex-col items-center gap-8 py-24 md:py-32">
+          <Badge variant="secondary" className="gap-1 px-4 py-1.5 text-sm animate-pulse">
+            <Sparkles className="h-4 w-4" />
+            AI-Powered Recruitment
+          </Badge>
+          
+          <div className="flex flex-col items-center gap-6 text-center">
+            <h1 className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-600 dark:from-gray-100 dark:via-gray-300 dark:to-gray-500 bg-clip-text text-transparent text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+              Smart Hiring Made Simple
+            </h1>
+            <p className="max-w-[42rem] text-lg text-muted-foreground sm:text-xl leading-relaxed">
+              Streamline your recruitment process with AI-powered candidate ranking, 
+              automated assessments, and intelligent matching.
+            </p>
+          </div>
+          
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <Button size="lg" className="shadow-lg hover:shadow-xl transition-shadow" asChild>
+              <Link href="/login">
+                Start Hiring
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button size="lg" variant="outline" className="shadow-md hover:shadow-lg transition-shadow" asChild>
+              <Link href="/login">I'm Looking for Jobs</Link>
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -81,9 +84,9 @@ export default function LandingPage() {
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 px-5">
-            <Card>
+            <Card className="transition-all hover:shadow-lg hover:-translate-y-1">
               <CardHeader>
-                <Target className="mb-2 h-10 w-10" />
+                <Target className="mb-2 h-10 w-10 text-primary" />
                 <CardTitle>AI Candidate Ranking</CardTitle>
                 <CardDescription>
                   Automatically rank candidates based on skills, experience, and job requirements
@@ -91,9 +94,9 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="transition-all hover:shadow-lg hover:-translate-y-1">
               <CardHeader>
-                <BarChart3 className="mb-2 h-10 w-10" />
+                <BarChart3 className="mb-2 h-10 w-10 text-primary" />
                 <CardTitle>Analytics Dashboard</CardTitle>
                 <CardDescription>
                   Track applications, view candidate analytics, and make data-driven decisions
@@ -101,9 +104,9 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="transition-all hover:shadow-lg hover:-translate-y-1">
               <CardHeader>
-                <Users className="mb-2 h-10 w-10" />
+                <Users className="mb-2 h-10 w-10 text-primary" />
                 <CardTitle>Smart Matching</CardTitle>
                 <CardDescription>
                   Match candidates with jobs using intelligent skill-based algorithms
@@ -111,9 +114,9 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="transition-all hover:shadow-lg hover:-translate-y-1">
               <CardHeader>
-                <CheckCircle className="mb-2 h-10 w-10" />
+                <CheckCircle className="mb-2 h-10 w-10 text-primary" />
                 <CardTitle>Automated Assessments</CardTitle>
                 <CardDescription>
                   Create and manage technical assessments to evaluate candidate skills
@@ -121,9 +124,9 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="transition-all hover:shadow-lg hover:-translate-y-1">
               <CardHeader>
-                <Zap className="mb-2 h-10 w-10" />
+                <Zap className="mb-2 h-10 w-10 text-primary" />
                 <CardTitle>Quick Applications</CardTitle>
                 <CardDescription>
                   Candidates can apply with resume upload and auto-parsed profile data
@@ -131,9 +134,9 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card>
+            <Card className="transition-all hover:shadow-lg hover:-translate-y-1">
               <CardHeader>
-                <Shield className="mb-2 h-10 w-10" />
+                <Shield className="mb-2 h-10 w-10 text-primary" />
                 <CardTitle>Secure & Reliable</CardTitle>
                 <CardDescription>
                   Enterprise-grade security to protect your sensitive recruitment data
@@ -156,9 +159,9 @@ export default function LandingPage() {
         </div>
 
         <div className="grid gap-8 md:grid-cols-3 px-5">
-          <Card>
+          <Card className="transition-all hover:shadow-lg hover:-translate-y-1">
             <CardHeader>
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-purple-600 text-2xl font-bold text-primary-foreground shadow-lg">
                 1
               </div>
               <CardTitle>Post Your Job</CardTitle>
@@ -168,9 +171,9 @@ export default function LandingPage() {
             </CardHeader>
           </Card>
 
-          <Card>
+          <Card className="transition-all hover:shadow-lg hover:-translate-y-1">
             <CardHeader>
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-purple-600 text-2xl font-bold text-primary-foreground shadow-lg">
                 2
               </div>
               <CardTitle>Review Applications</CardTitle>
@@ -180,9 +183,9 @@ export default function LandingPage() {
             </CardHeader>
           </Card>
 
-          <Card>
+          <Card className="transition-all hover:shadow-lg hover:-translate-y-1">
             <CardHeader>
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-purple-600 text-2xl font-bold text-primary-foreground shadow-lg">
                 3
               </div>
               <CardTitle>Hire the Best</CardTitle>
