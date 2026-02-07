@@ -3,7 +3,7 @@
  * Handles all HTTP requests with proper error handling and type safety
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://metis-im23.vercel.app';
 
 export class APIError extends Error {
   constructor(

@@ -75,7 +75,7 @@ export const authService = {
     
     console.log('Uploading resume:', file.name, 'Token:', token ? 'present' : 'missing');
     
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/users/upload-resume`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://metis-im23.vercel.app'}/api/users/upload-resume`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

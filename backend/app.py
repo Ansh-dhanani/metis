@@ -26,8 +26,8 @@ CORS(app, resources={
     r"/api/*": {
         "origins": [
             frontend_url,
-            "http://127.0.0.1:3000",
             production_url,
+            "https://metis-hire.vercel.app",
             "https://*.vercel.app"  # Vercel preview deployments
         ],
         "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
