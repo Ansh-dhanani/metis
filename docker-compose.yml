@@ -8,14 +8,23 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - FLASK_ENV=production
+      - FLASK_ENV=${FLASK_ENV:-production}
       - MONGO_URI=${MONGO_URI}
       - GROQ_API_KEY=${GROQ_API_KEY}
-      - FRONTEND_URL=${FRONTEND_URL}
-      - PRODUCTION_FRONTEND_URL=${PRODUCTION_FRONTEND_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - PRODUCTION_FRONTEND_URL=${PRODUCTION_FRONTEND_URL:-http://localhost:3000}
+      - PORT=5000
     volumes:
       - ./backend/logs:/app/logs
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   frontend:
     build:
@@ -24,12 +33,18 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://backend:5000
-      - NEXT_PUBLIC_WS_URL=http://backend:5000
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5000}
+      - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-http://localhost:5000}
       - NODE_ENV=production
     depends_on:
       - backend
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
   default:

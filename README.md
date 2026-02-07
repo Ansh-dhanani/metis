@@ -83,21 +83,46 @@ Visit: http://localhost:3000
 
 ## 🌐 Production Deployment
 
-### Option 1: Vercel + Railway (Recommended)
+### Option 1: Docker (Recommended)
 
-**Frontend** on Vercel, **Backend** on Railway
-
-📘 **[Complete Guide →](VERCEL_DEPLOYMENT.md)**
-
-### Option 2: Docker
+**Easiest way to deploy - works on any platform!**
 
 ```bash
+# Copy environment template
+cp .env.example .env
+# Edit .env with your credentials
+
+# Deploy with Docker Compose
 docker-compose up -d
 ```
 
-### Option 3: Manual
+📘 **[Complete Docker Guide →](DOCKER_DEPLOYMENT.md)**
 
-See [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md)
+Supports:
+- Render
+- Railway  
+- Fly.io
+- DigitalOcean
+- AWS/GCP/Azure
+
+### Option 2: Vercel + Railway
+
+**Frontend** on Vercel, **Backend** on Railway
+
+📘 **[Vercel Deployment Guide →](VERCEL_DEPLOYMENT.md)**
+
+### Option 3: Quick Deploy Script
+
+**Windows:**
+```powershell
+.\deploy-docker.ps1
+```
+
+**Linux/Mac:**
+```bash
+chmod +x deploy-docker.sh
+./deploy-docker.sh
+```
 
 ---
 
