@@ -21,11 +21,28 @@ export interface Application {
     section_scores?: Record<string, number>
     confidence_level?: string
   }
+  metisScore?: number
   advancedRanking?: {
     rank: number
     weighted_score: number
     final_score: number
     status: 'round_1' | 'round_2' | 'rejected'
+  }
+  // Pipeline scoring fields
+  finalScore?: number
+  round1Score?: number
+  round2Score?: number
+  interviewScore?: number
+  interviewEvaluation?: {
+    personality_score?: number
+    technical_approach_score?: number
+    communication_score?: number
+    problem_solving_score?: number
+    interview_score?: number
+    strengths?: string[]
+    areas_for_improvement?: string[]
+    overall_assessment?: string
+    hire_recommendation?: string
   }
   profileSnapshot: {
     skills?: string[]
@@ -145,6 +162,44 @@ export const createApplicationColumns = (
     sortingFn: (rowA, rowB) => {
       const scoreA = rowA.original.metisEvaluation?.overall_score || 0
       const scoreB = rowB.original.metisEvaluation?.overall_score || 0
+      return scoreA - scoreB
+    },
+  },
+  {
+    accessorKey: "finalScore",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Final Score" />
+    ),
+    cell: ({ row }) => {
+      const finalScore = row.original.finalScore || row.original.metisScore
+      const round1 = row.original.round1Score || row.original.metisScore
+      const round2 = row.original.round2Score
+      
+      if (!finalScore) {
+        return <span className="text-muted-foreground text-sm">Pending</span>
+      }
+      
+      const score = Math.round(finalScore)
+      const color = score >= 70 ? 'text-green-600' : score >= 50 ? 'text-yellow-600' : 'text-red-600'
+      
+      return (
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1">
+            <Award className={`h-4 w-4 ${color}`} />
+            <span className={`font-bold text-lg ${color}`}>{score}</span>
+            <span className="text-xs text-muted-foreground">/100</span>
+          </div>
+          {round2 && (
+            <div className="text-[10px] text-muted-foreground">
+              R1: {Math.round(round1 || 0)} • R2: {Math.round(round2)}
+            </div>
+          )}
+        </div>
+      )
+    },
+    sortingFn: (rowA, rowB) => {
+      const scoreA = rowA.original.finalScore || rowA.original.metisScore || 0
+      const scoreB = rowB.original.finalScore || rowB.original.metisScore || 0
       return scoreA - scoreB
     },
   },

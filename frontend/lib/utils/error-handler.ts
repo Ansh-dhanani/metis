@@ -10,6 +10,13 @@ import { toast } from 'sonner';
  */
 export function getErrorMessage(error: unknown): string {
   if (error instanceof APIError) {
+    // Include details if available
+    if (error.data && typeof error.data === 'object') {
+      const data = error.data as Record<string, any>;
+      if (data.details) {
+        return `${error.message}\n${data.details}`;
+      }
+    }
     return error.message;
   }
   

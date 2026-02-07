@@ -10,6 +10,11 @@ import os
 from dataclasses import dataclass, field
 
 try:
+    import pdfplumber
+except ImportError:
+    pdfplumber = None
+
+try:
     from pypdf import PdfReader
 except ImportError:
     PdfReader = None
@@ -55,12 +60,14 @@ class Project:
     name: str
     description: str = ""
     technologies: list[str] = field(default_factory=list)
+    url: str = ""
     
     def to_dict(self) -> dict:
         return {
             "name": self.name,
             "description": self.description,
             "technologies": self.technologies,
+            "url": self.url,
         }
 
 
@@ -202,10 +209,12 @@ def extract_links(text: str) -> dict:
             links[key] = match.group(0)
 
     # Portfolio - any URL that's not LinkedIn/GitHub
-    portfolio_pattern = r"https?://[a-zA-Z0-9.-]+\.(dev|app|com|in|io|vercel\.app)[^\s]*"
-    portfolio_matches = re.findall(portfolio_pattern, text, re.IGNORECASE)
-    for url in portfolio_matches:
-        if 'linkedin' not in url.lower() and 'github' not in url.lower():
+    # Match full URLs with common TLDs
+    portfolio_pattern = r"https?://[a-zA-Z0-9.-]+\.(?:dev|app|com|in|io|net|org|xyz|co|me|tech|online|site|vercel\.app|github\.io|netlify\.app)(?:/[^\s]*)?"
+    all_urls = re.findall(portfolio_pattern, text, re.IGNORECASE)
+    for url in all_urls:
+        # Skip LinkedIn and GitHub URLs
+        if 'linkedin.com' not in url.lower() and 'github.com' not in url.lower():
             links["portfolio"] = url
             break
 
@@ -216,33 +225,46 @@ def extract_skills_section(text: str) -> list[str]:
     """Extract skills from skills section."""
     skills = []
     
-    # Find skills section - improved pattern
-    skills_pattern = r"(?:technical\s+)?skills?\s*[:\-]?\s*\n?(.*?)(?=\n\s*(?:experience|education|projects?|certifications?)\s*\n|\Z)"
+    # Find skills section - improved pattern to handle various formats
+    skills_pattern = r"(?:technical\s+)?(?:skills?|competencies|expertise)\s*[:\-]?\s*\n?(.*?)(?=\n\s*(?:experience|education|projects?|certifications?|work\s+history|employment|academic|background)\s*[:\-]?\s*\n|\Z)"
     match = re.search(skills_pattern, text, re.IGNORECASE | re.DOTALL)
     
     if match:
         skills_text = match.group(1)
         
-        # Remove section headers like "AI & ML:", "Tools & Data:", etc.
-        skills_text = re.sub(r"(?:AI & ML|Languages|Tools|Frameworks|Data|Computer Vision)[:\s]*", "", skills_text, flags=re.IGNORECASE)
+        # Remove subsection headers (AI & ML:, Languages & Frameworks:, etc.)
+        # Replace them with commas to preserve skill separation
+        skills_text = re.sub(
+            r"(?:AI\s*&\s*ML|Languages?\s*&?\s*Frameworks?|Tools?\s*&?\s*Data|Computer\s+Vision|Programming|Technologies|Technical|Soft\s+Skills?)\s*:", 
+            ",", 
+            skills_text, 
+            flags=re.IGNORECASE
+        )
         
-        # Split by common delimiters
+        # Split by commas, pipes, bullets
         raw_skills = re.split(r"[,|•·]", skills_text)
         
         seen = set()
         for skill in raw_skills:
             skill = skill.strip()
-            # Clean up skill text
-            skill = re.sub(r"^[-•·\-]\s*", "", skill)
-            skill = re.sub(r"\([^)]*\)", "", skill)  # Remove parenthetical info
-            skill = skill.strip()
+            # Clean up skill text - remove leading bullets/dashes/newlines
+            skill = re.sub(r"^[-•·\-\*\+\s]+", "", skill)
+            skill = re.sub(r"[-•·\-\*\+\s]+$", "", skill)
+            # Remove parenthetical info
+            skill = re.sub(r"\([^)]*\)", "", skill)
+            # Remove trailing periods
+            skill = re.sub(r"\.$", "", skill)
+            # Clean up extra whitespace
+            skill = " ".join(skill.split())
             
-            # Skip if it's too short, too long, or already seen
+            # Skip if it's too short, too long, already seen, or is a common word
             if (skill and 
                 len(skill) > 1 and 
-                len(skill) < 50 and
+                len(skill) < 60 and
                 skill.lower() not in seen and
-                not skill.lower() in ['and', 'or', 'the', 'a', 'an']):
+                not skill.lower() in ['and', 'or', 'the', 'a', 'an', 'in', 'at', 'to', 'for', 'with', 'of', 'on', 'as', 'by', 'from', 'into'] and
+                not re.match(r'^\d+$', skill) and  # Skip pure numbers
+                not re.match(r'^[:\-\.\,]+$', skill)):  # Skip pure punctuation
                 seen.add(skill.lower())
                 skills.append(skill)
     
@@ -434,11 +456,17 @@ def parse_projects_section(text: str) -> list[Project]:
         if len(lines) < 1:
             continue
         
-        # First line is project name (may include dates)
+        # First line is project name (may include dates and URLs)
         name_line = lines[0]
+        
+        # Remove URLs from name (they should be in the URL field)
+        name = re.sub(r"https?://[^\s]+", "", name_line)
+        # Remove bullet points and special characters from name
+        name = re.sub(r"[•\-–|]", " ", name)
         # Remove dates from name
-        name = re.sub(r"\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–]\s*(?:Present|Current|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4})", "", name_line, flags=re.IGNORECASE)
-        name = name.strip()
+        name = re.sub(r"\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\s*[-–]\s*(?:Present|Current|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4})", "", name, flags=re.IGNORECASE)
+        # Clean up extra whitespace
+        name = " ".join(name.split()).strip()
         
         # Extract URL from entire block
         url_match = re.search(r"https?://[^\s]+", block)
@@ -450,8 +478,12 @@ def parse_projects_section(text: str) -> list[Project]:
             if line.startswith("•") or line.startswith("-"):
                 bullet = line.lstrip("•-").strip()
                 bullets.append(bullet)
+            elif not url_match or url_match.group(0) not in line:
+                # Include non-bullet lines that aren't just the URL
+                if len(line) > 10 and not line.startswith("http"):
+                    bullets.append(line)
         
-        description = " ".join(bullets)
+        description = ". ".join(bullets) if bullets else ""
         
         # Extract technologies mentioned
         tech_keywords = [
@@ -474,7 +506,8 @@ def parse_projects_section(text: str) -> list[Project]:
             projects.append(Project(
                 name=name[:100],
                 description=description[:500] if description else "",
-                technologies=technologies
+                technologies=technologies,
+                url=url
             ))
     
     return projects
@@ -517,20 +550,36 @@ def parse_certifications_section(text: str) -> list[str]:
 
 
 def extract_text_from_pdf(file_path: str) -> str:
-    """Extract text from PDF file."""
-    if PdfReader is None:
-        raise ImportError("pypdf is required for PDF parsing. Install with `pip install pypdf`")
+    """Extract text from PDF file using pdfplumber for better extraction."""
+    # Try pdfplumber first (better text extraction)
+    if pdfplumber is not None:
+        try:
+            text = []
+            with pdfplumber.open(file_path) as pdf:
+                for page in pdf.pages:
+                    content = page.extract_text()
+                    if content:
+                        text.append(content)
+            if text:
+                return "\n".join(text)
+        except Exception as e:
+            print(f"pdfplumber extraction failed: {e}")
     
-    text = []
-    try:
-        reader = PdfReader(file_path)
-        for page in reader.pages:
-            content = page.extract_text()
-            if content:
-                text.append(content)
-        return "\n".join(text)
-    except Exception as e:
-        return ""
+    # Fallback to pypdf
+    if PdfReader is not None:
+        try:
+            text = []
+            reader = PdfReader(file_path)
+            for page in reader.pages:
+                content = page.extract_text()
+                if content:
+                    text.append(content)
+            return "\n".join(text)
+        except Exception as e:
+            print(f"pypdf extraction failed: {e}")
+            return ""
+    
+    raise ImportError("No PDF library available. Install pdfplumber or pypdf")
 
 
 def read_resume_file(file_path: str) -> str:
@@ -557,23 +606,15 @@ def parse_resume(resume_text: str) -> ParsedResume:
     
     # Extract contact info
     parsed.name = extract_name(resume_text)
-    print(f"DEBUG: Extracted name: [{parsed.name}]")
-    
     parsed.first_name, parsed.last_name = split_name(parsed.name)
-    print(f"DEBUG: Split name - First: [{parsed.first_name}], Last: [{parsed.last_name}]")
-    
     parsed.email = extract_email(resume_text)
-    print(f"DEBUG: Extracted email: [{parsed.email}]")
-    
     parsed.phone = extract_phone(resume_text)
-    print(f"DEBUG: Extracted phone: [{parsed.phone}]")
     
     # Extract social links
     links = extract_links(resume_text)
     parsed.linkedin = links["linkedin"]
     parsed.github = links["github"]
     parsed.portfolio = links["portfolio"]
-    print(f"DEBUG: Links - LinkedIn: [{parsed.linkedin}], GitHub: [{parsed.github}], Portfolio: [{parsed.portfolio}]")
     
     # Extract summary
     summary_section = extract_section(resume_text, r"(?:summary|objective|about)")

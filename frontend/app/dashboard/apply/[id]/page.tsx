@@ -60,6 +60,29 @@ export default function JobApplicationPage() {
     checkExistingApplication();
   }, [jobId, user]);
 
+  // Update profile data when user changes
+  useEffect(() => {
+    if (user) {
+      setProfileData(prev => ({
+        ...prev,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+      }));
+
+      // Check if name is missing and warn user
+      if (!user.firstName || !user.lastName) {
+        toast.error('Please complete your profile first. Go to Profile page and add your name.', {
+          duration: 5000,
+          action: {
+            label: 'Go to Profile',
+            onClick: () => router.push('/dashboard/profile'),
+          },
+        });
+      }
+    }
+  }, [user?.firstName, user?.lastName, user?.email]);
+
   const fetchJobDetails = async () => {
     try {
       const jobData = await jobsService.getJob(jobId);
@@ -128,19 +151,66 @@ export default function JobApplicationPage() {
   };
 
   const handleSubmitApplication = async () => {
+    // Validate required fields
+    const errors: string[] = [];
+    
+    if (!profileData.firstName?.trim()) errors.push('First Name');
+    if (!profileData.lastName?.trim()) errors.push('Last Name');
+    if (!profileData.email?.trim()) errors.push('Email');
+    if (!profileData.phone?.trim()) errors.push('Phone');
+    if (!profileData.skills || profileData.skills.length === 0) errors.push('Skills');
+    
+    if (errors.length > 0) {
+      toast.error(`Please fill in the following required fields: ${errors.join(', ')}`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Update user profile first
       await authService.updateProfile(profileData);
       
       // Submit application
-      await applicationsService.submitApplication({
+      const response = await applicationsService.submitApplication({
         jobId,
         profileSnapshot: profileData,
       });
 
       toast.success('Application submitted successfully!');
-      setCurrentStep('complete');
+      
+      // PIPELINE STEP 1: Auto-evaluate resume (Round 1)
+      toast.loading('Evaluating your resume with AI...', { id: 'evaluating' });
+      
+      try {
+        const applicationId = response.applicationId || response._id;
+        
+        // Call METIS evaluation for this specific application
+        await fetch(`http://localhost:5000/api/evaluation/evaluate/${applicationId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        
+        toast.success('Resume evaluated! Starting your interview...', { id: 'evaluating' });
+        
+        // PIPELINE STEP 2: Redirect to AI Interview (Round 2)
+        setTimeout(() => {
+          router.push(`/dashboard/interview/${applicationId}?jobId=${jobId}`);
+        }, 1500);
+        
+      } catch (evalError) {
+        console.error('Evaluation error:', evalError);
+        toast.error('Resume submitted but evaluation pending. You can start the interview now.', { id: 'evaluating' });
+        
+        // Still redirect to interview even if evaluation fails
+        setTimeout(() => {
+          const applicationId = response.applicationId || response._id;
+          router.push(`/dashboard/interview/${applicationId}?jobId=${jobId}`);
+        }, 2000);
+      }
+      
     } catch (error: any) {
       const errorMessage = getErrorMessage(error);
       
@@ -302,37 +372,40 @@ export default function JobApplicationPage() {
               <CardContent className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="firstName">First Name <span className="text-red-500">*</span></Label>
                     <Input
                       id="firstName"
                       value={profileData.firstName}
-                      onChange={(e) => handleProfileUpdate('firstName', e.target.value)}
+                      disabled
+                      className="bg-muted cursor-not-allowed"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
+                    <Label htmlFor="lastName">Last Name <span className="text-red-500">*</span></Label>
                     <Input
                       id="lastName"
                       value={profileData.lastName}
-                      onChange={(e) => handleProfileUpdate('lastName', e.target.value)}
+                      disabled
+                      className="bg-muted cursor-not-allowed"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
                     <Input
                       id="email"
                       type="email"
                       value={profileData.email}
-                      onChange={(e) => handleProfileUpdate('email', e.target.value)}
                       disabled
+                      className="bg-muted cursor-not-allowed"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
+                    <Label htmlFor="phone">Phone <span className="text-red-500">*</span></Label>
                     <Input
                       id="phone"
                       value={profileData.phone}
                       onChange={(e) => handleProfileUpdate('phone', e.target.value)}
+                      placeholder="Enter your phone number"
                     />
                   </div>
                 </div>
@@ -557,7 +630,7 @@ export default function JobApplicationPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Skills</Label>
+                  <Label>Skills <span className="text-red-500">*</span></Label>
                   <div className="flex flex-wrap gap-2 p-3 border rounded-lg min-h-[60px]">
                     {profileData.skills.map((skill, idx) => (
                       <Badge key={idx} variant="secondary">
@@ -573,7 +646,7 @@ export default function JobApplicationPage() {
                   </div>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Add a skill"
+                      placeholder="Add a skill (press Enter)"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                           const input = e.currentTarget;
@@ -763,10 +836,27 @@ export default function JobApplicationPage() {
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
-                  <Button onClick={handleSubmitApplication} disabled={isSubmitting}>
+                  <Button 
+                    onClick={handleSubmitApplication} 
+                    disabled={isSubmitting || !profileData.firstName || !profileData.lastName}
+                  >
                     {isSubmitting ? 'Submitting...' : 'Submit Application'}
                   </Button>
                 </div>
+                {(!profileData.firstName || !profileData.lastName) && (
+                  <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-sm text-amber-800">
+                      ⚠️ Please go to your{' '}
+                      <button 
+                        onClick={() => router.push('/dashboard/profile')}
+                        className="font-semibold underline hover:text-amber-900"
+                      >
+                        Profile page
+                      </button>
+                      {' '}and complete your name before submitting.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

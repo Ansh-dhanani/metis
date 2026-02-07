@@ -52,61 +52,91 @@ def generate_advanced_rankings(job_id):
         
         # Get all applications with METIS scores
         applications = list(db.applications.find({
-            "jobId": job_id,
+            "jobId": ObjectId(job_id),
             "metisEvaluation": {"$exists": True}
         }))
         
         if not applications:
-            return jsonify({"error": "No evaluated applications found"}), 400
+            # Check if there are any applications at all
+            all_applications = list(db.applications.find({"jobId": ObjectId(job_id)}))
+            if not all_applications:
+                return jsonify({"error": "No applications found for this job"}), 400
+            else:
+                return jsonify({
+                    "error": "No evaluated applications found",
+                    "details": f"Found {len(all_applications)} application(s), but none have been evaluated yet. Please run 'Evaluate Applications' first."
+                }), 400
         
-        # Prepare skill weights from job
-        skill_weights = job.get('skillWeights', [])
-        if not skill_weights:
-            return jsonify({"error": "Job has no skill weights defined"}), 400
-        
-        # Prepare candidates data for scoring pipeline
-        candidates = []
+        # Sort applications by final score (if available) or metis score
+        # Priority: finalScore > metisScore
         for app in applications:
-            metis_eval = app.get('metisEvaluation', {})
-            section_scores = metis_eval.get('section_scores', {})
-            
-            # Map METIS scores to skill scores
-            skill_scores = []
-            for sw in skill_weights:
-                skill = sw.get('skill', '')
-                # Use skill evidence score as proxy
-                score = section_scores.get('skill_evidence', 0) * 100 / 30  # Normalize to 0-100
-                skill_scores.append({
-                    'skill': skill,
-                    'score': score
-                })
-            
-            # Extract resume claims from METIS evaluation
-            resume_claims = []
-            for skill in metis_eval.get('strength_signals', []):
-                resume_claims.append({
-                    'skill': skill,
-                    'claimed_level': 'proficient'
-                })
-            
-            candidates.append({
-                'candidate_id': str(app['candidateId']),
-                'candidate_name': app.get('profileSnapshot', {}).get('firstName', '') + ' ' + 
-                                app.get('profileSnapshot', {}).get('lastName', ''),
-                'skill_scores': skill_scores,
-                'resume_claims': resume_claims
-            })
+            if 'finalScore' not in app:
+                app['finalScore'] = app.get('metisScore', 0)
         
-        # Initialize leaderboard service
-        leaderboard_service = LeaderboardService(db=db)
+        # Sort by final score descending
+        applications.sort(key=lambda x: x.get('finalScore', 0), reverse=True)
         
-        # Generate leaderboard
-        leaderboard = leaderboard_service.generate_leaderboard(
-            job_id=job_id,
-            job_title=job.get('title', ''),
-            skill_weights=skill_weights,
-            candidates=candidates,
-            save_to_db=True
+        # Create leaderboard entries
+        leaderboard_entries = []
+        round_1_count = 0
+        round_2_count = 0
+        rejected_count = 0
+        
+        for rank, app in enumerate(applications, start=1):
+            final_score = app.get('finalScore', app.get('metisScore', 0))
+            round1_score = app.get('round1Score', app.get('metisScore', 0))
+            round2_score = app.get('round2Score', 0)
+            
+            # Determine status based on final score
+            if final_score >= 70:
+                status = 'round_2'
+                round_2_count += 1
+                shortlist_reason = 'High combined score (Resume + Interview)'
+            elif final_score >= 50:
+                status = 'round_1'
+                round_1_count += 1
+                shortlist_reason = 'Moderate score, needs review'
+            else:
+                status = 'rejected'
+                rejected_count += 1
+                shortlist_reason = 'Score below threshold'
+            
+            profile = app.get('profileSnapshot', {})
+            candidate_name = f"{profile.get('firstName', '')} {profile.get('lastName', '')}".strip() or 'Unknown'
+            
+            entry = {
+                'rank': rank,
+                'candidate_id': str(app.get('candidateId', '')),
+                'candidate_name': candidate_name,
+                'final_score': round(final_score, 1),
+                'round1_score': round(round1_score, 1),
+                'round2_score': round(round2_score, 1),
+                'has_interview': 'interviewScore' in app,
+                'status': status,
+                'shortlist_reason': shortlist_reason,
+                'metis_evaluation': app.get('metisEvaluation', {}),
+                'interview_evaluation': app.get('interviewEvaluation', {})
+            }
+            
+            leaderboard_entries.append(entry)
+        
+        # Create leaderboard object
+        leaderboard = {
+            'job_id': job_id,
+            'job_title': job.get('title', ''),
+            'total_applicants': len(applications),
+            'round_1_count': round_1_count,
+            'round_2_count': round_2_count,
+            'rejected_count': rejected_count,
+            'entries': leaderboard_entries,
+            'generated_at': datetime.now().isoformat()
+        }
+        
+        # Save to database
+        db.leaderboards.update_one(
+            {'job_id': job_id},
+            {'$set': leaderboard},
+            upsert=True
         )
         
         return jsonify({

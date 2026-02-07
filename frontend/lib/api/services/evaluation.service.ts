@@ -87,4 +87,24 @@ export const evaluationService = {
   batchEvaluate: async (jobId: string): Promise<any> => {
     return api.post(`/api/evaluation/batch-evaluate/${jobId}`);
   },
+
+  /**
+   * Evaluate interview transcript and calculate final score
+   */
+  evaluateInterview: async (applicationId: string): Promise<{
+    message: string;
+    round1_score: number;
+    round2_score: number;
+    final_score: number;
+    evaluation: any;
+  }> => {
+    return api.post(`/api/evaluation/evaluate-interview/${applicationId}`);
+  },
+
+  /**
+   * Batch evaluate all interviews for a job
+   */
+  batchEvaluateInterviews: async (jobId: string): Promise<any> => {
+    return api.post(`/api/evaluation/batch-evaluate-interviews/${jobId}`);
+  },
 };

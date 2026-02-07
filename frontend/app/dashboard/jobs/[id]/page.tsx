@@ -31,6 +31,14 @@ interface Application {
   status: string;
   stage: string;
   assessmentScore?: number;
+  finalScore?: number;
+  round1Score?: number;
+  round2Score?: number;
+  metisScore?: number;
+  metisEvaluation?: any;
+  interviewScore?: number;
+  interviewEvaluation?: any;
+  advancedRanking?: any;
   profileSnapshot: {
     firstName: string;
     lastName: string;
@@ -121,6 +129,16 @@ export default function JobDetailsPage() {
     try {
       const result = await evaluationService.batchEvaluate(jobId);
       toast.success(result.message || 'Applications evaluated successfully');
+      
+      // Also evaluate interviews if any exist
+      try {
+        const interviewResult = await evaluationService.batchEvaluateInterviews(jobId);
+        if (interviewResult.evaluated > 0) {
+          toast.success(`Evaluated ${interviewResult.evaluated} interviews`);
+        }
+      } catch (err) {
+        console.log('No interviews to evaluate');
+      }
       
       // Refresh applications to show METIS scores
       const applicationsData = await applicationsService.getJobApplications(jobId);
@@ -514,28 +532,45 @@ export default function JobDetailsPage() {
               <CardContent>
                 <DataTable
                 columns={createApplicationColumns(handleSelectCandidate, handleViewProfile, handleAcceptCandidate, handleRejectCandidate, handleRemoveStatus)}
-                  data={applications.map(app => ({
-                    _id: app._id,
-                    candidateId: app.candidateId,
-                    candidateName: `${app.profileSnapshot?.firstName || ''} ${app.profileSnapshot?.lastName || ''}`.trim() || 'Unknown',
-                    candidateEmail: app.profileSnapshot?.email || 'N/A',
-                    status: app.status,
-                    stage: app.stage,
-                    appliedAt: app.appliedAt || app.createdAt || '',
-                    assessmentScore: app.assessmentScore,
-                    profileSnapshot: {
-                      skills: app.profileSnapshot?.skills || [],
-                      phone: app.profileSnapshot?.phone,
-                      linkedinUrl: app.profileSnapshot?.linkedinUrl,
-                      githubUrl: app.profileSnapshot?.githubUrl,
-                      portfolioUrl: app.profileSnapshot?.portfolioUrl,
-                      experience: app.profileSnapshot?.experience,
-                      education: app.profileSnapshot?.education || [],
-                      projects: app.profileSnapshot?.projects || [],
-                      certifications: app.profileSnapshot?.certifications || [],
-                      resumeText: app.profileSnapshot?.resumeText,
-                    }
-                  }))}
+                  data={applications
+                    .map(app => ({
+                      _id: app._id,
+                      candidateId: app.candidateId,
+                      candidateName: `${app.profileSnapshot?.firstName || ''} ${app.profileSnapshot?.lastName || ''}`.trim() || 'Unknown',
+                      candidateEmail: app.profileSnapshot?.email || 'N/A',
+                      status: app.status,
+                      stage: app.stage,
+                      appliedAt: app.appliedAt || app.createdAt || '',
+                      assessmentScore: app.assessmentScore,
+                      // Pipeline scores
+                      finalScore: app.finalScore,
+                      round1Score: app.round1Score || app.metisScore,
+                      round2Score: app.round2Score,
+                      metisScore: app.metisScore,
+                      metisEvaluation: app.metisEvaluation,
+                      interviewScore: app.interviewScore,
+                      interviewEvaluation: app.interviewEvaluation,
+                      advancedRanking: app.advancedRanking,
+                      profileSnapshot: {
+                        skills: app.profileSnapshot?.skills || [],
+                        phone: app.profileSnapshot?.phone,
+                        linkedinUrl: app.profileSnapshot?.linkedinUrl,
+                        githubUrl: app.profileSnapshot?.githubUrl,
+                        portfolioUrl: app.profileSnapshot?.portfolioUrl,
+                        experience: app.profileSnapshot?.experience,
+                        education: app.profileSnapshot?.education || [],
+                        projects: app.profileSnapshot?.projects || [],
+                        certifications: app.profileSnapshot?.certifications || [],
+                        resumeText: app.profileSnapshot?.resumeText,
+                      }
+                    }))
+                    // Sort by final score (highest first)
+                    .sort((a, b) => {
+                      const scoreA = a.finalScore || a.metisScore || 0;
+                      const scoreB = b.finalScore || b.metisScore || 0;
+                      return scoreB - scoreA;
+                    })
+                  }
                   searchKey="candidateName"
                   searchPlaceholder="Search candidates..."
                 />
@@ -544,15 +579,77 @@ export default function JobDetailsPage() {
           )}
 
           <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-            <DialogContent className="max-w-6xl max-h-[90vh]">
+            <DialogContent className="!max-w-[90vw] max-h-[90vh] w-[90vw]">
               <DialogHeader>
                 <DialogTitle>Candidate Profile</DialogTitle>
               </DialogHeader>
               {selectedProfile && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-full">
                   {/* Left side - Profile details */}
                   <ScrollArea className="max-h-[70vh] pr-4">
                     <div className="space-y-6">
+                    
+                    {/* Evaluation Summary */}
+                    {(selectedProfile.finalScore || selectedProfile.metisScore) && (
+                      <div className="border rounded-lg p-4 bg-gradient-to-r from-blue-50 to-purple-50">
+                        <h4 className="font-semibold text-lg mb-3">Evaluation Summary</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          {selectedProfile.finalScore && (
+                            <div className="text-center">
+                              <div className="text-3xl font-bold text-blue-600">
+                                {selectedProfile.finalScore}
+                                <span className="text-lg">/100</span>
+                              </div>
+                              <div className="text-sm text-muted-foreground">Final Score</div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                30% Resume + 70% Interview
+                              </div>
+                            </div>
+                          )}
+                          {selectedProfile.round1Score !== undefined && (
+                            <div className="text-center">
+                              <div className="text-2xl font-semibold text-green-600">
+                                {selectedProfile.round1Score}
+                                <span className="text-sm">/100</span>
+                              </div>
+                              <div className="text-sm text-muted-foreground">Resume Score</div>
+                            </div>
+                          )}
+                          {selectedProfile.round2Score !== undefined && (
+                            <div className="text-center">
+                              <div className="text-2xl font-semibold text-purple-600">
+                                {selectedProfile.round2Score}
+                                <span className="text-sm">/100</span>
+                              </div>
+                              <div className="text-sm text-muted-foreground">Interview Score</div>
+                            </div>
+                          )}
+                          {selectedProfile.metisScore && !selectedProfile.finalScore && (
+                            <div className="text-center">
+                              <div className="text-3xl font-bold text-green-600">
+                                {selectedProfile.metisScore}
+                                <span className="text-lg">/100</span>
+                              </div>
+                              <div className="text-sm text-muted-foreground">METIS Score</div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Interview Evaluation Summary */}
+                        {selectedProfile.interviewEvaluation && (
+                          <div className="mt-4 pt-4 border-t space-y-2">
+                            <p className="text-sm"><span className="font-medium">Recommendation:</span> {selectedProfile.interviewEvaluation.hire_recommendation?.replace('_', ' ').toUpperCase()}</p>
+                            <p className="text-sm text-muted-foreground italic">{selectedProfile.interviewEvaluation.overall_assessment}</p>
+                            {selectedProfile.interviewEvaluation.strengths && selectedProfile.interviewEvaluation.strengths.length > 0 && (
+                              <div className="text-xs">
+                                <span className="font-medium">Strengths:</span> {selectedProfile.interviewEvaluation.strengths.join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     <div>
                       <h3 className="text-lg font-semibold">{selectedProfile.candidateName}</h3>
                       <p className="text-sm text-muted-foreground">{selectedProfile.candidateEmail}</p>
