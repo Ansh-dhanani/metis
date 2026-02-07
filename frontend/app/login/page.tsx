@@ -45,16 +45,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 px-4 py-8">
-      <div className="w-full max-w-md space-y-4">
-        <Card className="shadow-xl">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-3xl font-bold tracking-tight">Welcome to Metis</CardTitle>
-            <CardDescription className="text-base">
-              Sign in to your account to continue
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSubmit}>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">Welcome to Metis</CardTitle>
+          <CardDescription>
+            Sign in to your account to continue
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {error && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-4">
@@ -89,7 +88,6 @@ export default function LoginPage() {
                 }
                 required
                 disabled={isLoading}
-                className="transition-all focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -105,75 +103,54 @@ export default function LoginPage() {
                 }
                 required
                 disabled={isLoading}
-                className="transition-all focus:ring-2 focus:ring-primary"
               />
             </div>
 
-            <div className="pt-2 space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Quick Login (Demo):</p>
+            <div className="space-y-2">
+              <Label className="text-sm text-muted-foreground">Auto-fill credentials:</Label>
               <div className="flex gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   className="flex-1"
-                  onClick={() => setFormData({ email: 'hr@example.com', password: 'password123' })}
+                  onClick={() => setFormData({ email: 'hr@example.com', password: 'hr@1234' })}
                   disabled={isLoading}
                 >
-                  HR Login
+                  HR
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   className="flex-1"
-                  onClick={() => setFormData({ email: 'candidate@example.com', password: 'password123' })}
+                  onClick={() => setFormData({ email: 'candidate@example.com', password: 'can@1234' })}
                   disabled={isLoading}
                 >
-                  Candidate Login
+                  Candidate
                 </Button>
+              </div>
+              <div className="text-xs text-muted-foreground space-y-1 mt-2">
+                <p>HR: hr@example.com / hr@1234</p>
+                <p>Candidate: candidate@example.com / can@1234</p>
               </div>
             </div>
           </CardContent>
 
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full shadow-md hover:shadow-lg transition-shadow" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
             
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-sm text-gray-600">
               Don&apos;t have an account?{' '}
-              <Link href="/register" className="text-primary font-semibold hover:underline">
+              <Link href="/register" className="text-primary hover:underline">
                 Register
               </Link>
             </p>
           </CardFooter>
         </form>
       </Card>
-      
-      {/* Sample Credentials Info */}
-      <Card className="bg-muted/50 backdrop-blur">
-        <CardContent className="pt-6">
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-center">Demo Credentials</h3>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between items-center p-2 bg-background rounded">
-                <span className="font-medium">HR Account:</span>
-                <code className="text-primary">hr@example.com</code>
-              </div>
-              <div className="flex justify-between items-center p-2 bg-background rounded">
-                <span className="font-medium">Candidate:</span>
-                <code className="text-primary">candidate@example.com</code>
-              </div>
-              <div className="flex justify-between items-center p-2 bg-background rounded">
-                <span className="font-medium">Password:</span>
-                <code className="text-primary">password123</code>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      </div>
     </div>
   );
 }
