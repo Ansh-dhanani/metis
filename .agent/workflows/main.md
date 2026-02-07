@@ -14,10 +14,10 @@ description: Run the METIS Scoring Model application
 // turbo
 1. Install dependencies:
 ```bash
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
-2. Configure environment variables in `.env`:
+2. Configure environment variables in `backend/.env`:
 ```
 GROQ_API_KEY=your_groq_api_key_here
 ```
@@ -27,6 +27,7 @@ GROQ_API_KEY=your_groq_api_key_here
 // turbo
 3. Start the Flask server:
 ```bash
+cd backend
 python app.py
 ```
 

@@ -9,10 +9,18 @@ Supports:
 """
 
 import os
+import sys
 from pathlib import Path
 
+# Add model directory to sys.path
+# base_dir is backend/
+base_dir = Path(__file__).resolve().parent
+# model_dir is ../model
+model_dir = base_dir.parent / "model"
+sys.path.append(str(model_dir))
+
 # Load .env file
-env_path = Path(__file__).parent / ".env"
+env_path = base_dir / ".env"
 if env_path.exists():
     with open(env_path) as f:
         for line in f:
@@ -88,19 +96,19 @@ def create_app():
     # Serve demo pages
     @app.route('/')
     def index():
-        return send_from_directory('demo', 'leaderboard_demo.html')
+        return send_from_directory('../frontend/demo', 'leaderboard_demo.html')
     
     @app.route('/interview')
     def interview_page():
-        return send_from_directory('demo', 'interview_demo.html')
+        return send_from_directory('../frontend/demo', 'interview_demo.html')
     
     @app.route('/upload')
     def upload_page():
-        return send_from_directory('demo', 'upload_demo.html')
+        return send_from_directory('../frontend/demo', 'upload_demo.html')
     
     @app.route('/demo/<path:filename>')
     def serve_demo(filename):
-        return send_from_directory('demo', filename)
+        return send_from_directory('../frontend/demo', filename)
     
     # Health check
     @app.route('/health')

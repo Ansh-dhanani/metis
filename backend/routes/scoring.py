@@ -19,6 +19,8 @@ from flask import Blueprint, request, jsonify
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add model directory to sys.path for scoring_model imports
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'model'))
 
 from scoring_model.langgraph_model import (
     run_scoring_pipeline, 

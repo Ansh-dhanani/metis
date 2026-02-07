@@ -522,7 +522,9 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         eval_dir = sys.argv[1]
     else:
-        eval_dir = "hackathon/hackathon/evaluations"
+        # Default to ../hackathon/hackathon/evaluations relative to this file
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        eval_dir = os.path.join(base_dir, "../hackathon/hackathon/evaluations")
     
     print(f"Processing evaluations from: {eval_dir}")
     

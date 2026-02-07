@@ -10,7 +10,8 @@ import tempfile
 from flask import Blueprint, request, jsonify
 
 # Add metis to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'hackathon', 'hackathon'))
+# Add metis to path (model/hackathon/hackathon)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'model', 'hackathon', 'hackathon'))
 
 upload_bp = Blueprint('upload', __name__, url_prefix='/api/upload')
 
