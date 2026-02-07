@@ -7,6 +7,10 @@ gtts>=2.5.4
 flask-socketio>=5.3.6
 eventlet>=0.33.3
 
+# PDF parsing
+pdfplumber>=0.11.0
+pypdf>=4.0.0
+
 # LangGraph Scoring Model
 langgraph>=0.2.62
 langchain>=0.3.15
