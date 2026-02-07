@@ -1,0 +1,54 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.bin
+
+
+# Distribution / packaging
+.Python
+env/
+venv/
+lib/
+lib64/
+bin/
+include/
+share/
+*.egg
+*.egg-info/
+.installed.cfg
+develop-eggs/
+dist/
+build/
+
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+
+
+# Editors and IDEs
+.project
+.vscode/
+.idea/
+*.swp
+
+
+# OS-specific files
+.DS_Store # macOS
+
+
+# Environment variables
+.env
+.flaskenv
+
