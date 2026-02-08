@@ -5,9 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { 
-  Briefcase, 
   Users, 
-  TrendingUp, 
   CheckCircle, 
   ArrowRight, 
   Target, 

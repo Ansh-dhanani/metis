@@ -44,7 +44,8 @@ export default function RegisterPage() {
     }
 
     try {
-      const { confirmPassword, ...registerData } = formData;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { confirmPassword: _confirmPassword, ...registerData } = formData;
       await authService.register(registerData);
       router.push('/login?registered=true');
     } catch (err) {

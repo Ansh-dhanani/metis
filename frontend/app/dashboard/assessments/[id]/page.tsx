@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Clock, CheckCircle, ChevronRight } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 import type { Assessment } from '@/lib/api/types';
 import Link from 'next/link';
 
@@ -91,7 +92,7 @@ export default function AssessmentPage() {
         isCorrect: finalResponses[q._id]?.isCorrect || false,
       }));
 
-      const result = await assessmentsService.completeAssessment(assessmentId, {
+      await assessmentsService.completeAssessment(assessmentId, {
         responses: formattedResponses,
       });
 
@@ -109,10 +110,10 @@ export default function AssessmentPage() {
     return (
       <ProtectedRoute requiredRole="candidate">
         <DashboardLayout>
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-              <p className="mt-4 text-sm text-gray-500">Loading assessment...</p>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-4">
+              <Spinner className="h-12 w-12 mx-auto" />
+              <p className="text-sm text-muted-foreground">Loading assessment...</p>
             </div>
           </div>
         </DashboardLayout>

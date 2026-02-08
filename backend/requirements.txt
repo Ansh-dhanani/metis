@@ -2,6 +2,7 @@ Flask
 Flask-CORS
 pymongo
 python-dotenv
+python-dateutil
 gunicorn>=21.2.0
 
 gtts>=2.5.4

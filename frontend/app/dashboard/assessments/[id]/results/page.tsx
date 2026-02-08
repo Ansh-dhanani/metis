@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, TrendingUp, Award } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 import Link from 'next/link';
 import type { Assessment } from '@/lib/api/types';
 
@@ -51,10 +52,10 @@ export default function AssessmentResultsPage() {
     return (
       <ProtectedRoute requiredRole="candidate">
         <DashboardLayout>
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-              <p className="mt-4 text-sm text-gray-500">Loading results...</p>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-4">
+              <Spinner className="h-12 w-12 mx-auto" />
+              <p className="text-sm text-muted-foreground">Loading results...</p>
             </div>
           </div>
         </DashboardLayout>

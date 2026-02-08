@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Spinner } from '@/components/ui/spinner';
 import { ArrowLeft, Plus, Trash2, Calendar } from 'lucide-react';
 import Link from 'next/link';
 
@@ -191,65 +192,86 @@ export default function NewJobPage() {
                 </div>
 
                 {/* Auto-Selection and Auto-Close Options */}
-                <div className="space-y-4 rounded-lg border p-4 bg-gray-50">
-                  <h3 className="font-medium">Automation Settings</h3>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="autoSelect"
-                      checked={formData.autoSelectTopCandidate}
-                      onCheckedChange={(checked) =>
-                        setFormData({ ...formData, autoSelectTopCandidate: checked as boolean })
-                      }
-                      disabled={isLoading}
-                    />
-                    <label
-                      htmlFor="autoSelect"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Auto-select top candidate
-                    </label>
+                <div className="space-y-4 rounded-lg border p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-blue-600" />
+                    <h3 className="font-semibold text-lg">Automation Settings</h3>
                   </div>
-                  <p className="text-xs text-gray-500 ml-6">
-                    Automatically accept the highest-scoring candidate once all assessments are complete.
-                  </p>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="autoClose"
-                        checked={formData.autoCloseEnabled}
-                        onCheckedChange={(checked) =>
-                          setFormData({ ...formData, autoCloseEnabled: checked as boolean })
-                        }
-                        disabled={isLoading}
-                      />
-                      <label
-                        htmlFor="autoClose"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Auto-close on specific date/time
-                      </label>
-                    </div>
-                    
-                    {formData.autoCloseEnabled && (
-                      <div className="ml-6 space-y-2">
-                        <Label htmlFor="autoCloseDate">Closing Date & Time</Label>
-                        <Input
-                          id="autoCloseDate"
-                          type="datetime-local"
-                          value={formData.autoCloseDate}
-                          onChange={(e) =>
-                            setFormData({ ...formData, autoCloseDate: e.target.value })
+                  <p className="text-sm text-gray-600">Configure automatic actions for this job posting</p>
+                  
+                  <div className="space-y-4 bg-white rounded-lg p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start space-x-3">
+                        <Checkbox
+                          id="autoSelect"
+                          checked={formData.autoSelectTopCandidate}
+                          onCheckedChange={(checked) =>
+                            setFormData({ ...formData, autoSelectTopCandidate: checked as boolean })
                           }
                           disabled={isLoading}
-                          required={formData.autoCloseEnabled}
+                          className="mt-1"
                         />
-                        <p className="text-xs text-gray-500">
-                          Job will automatically close and stop accepting applications at this time.
-                        </p>
+                        <div className="flex-1">
+                          <label
+                            htmlFor="autoSelect"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            Auto-select top candidate
+                          </label>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Automatically accept the highest-scoring candidate once all assessments are complete.
+                          </p>
+                        </div>
                       </div>
-                    )}
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start space-x-3">
+                          <Checkbox
+                            id="autoClose"
+                            checked={formData.autoCloseEnabled}
+                            onCheckedChange={(checked) =>
+                              setFormData({ ...formData, autoCloseEnabled: checked as boolean })
+                            }
+                            disabled={isLoading}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <label
+                              htmlFor="autoClose"
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                            >
+                              Auto-close on deadline
+                            </label>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Automatically close job and stop accepting applications at specified date/time.
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {formData.autoCloseEnabled && (
+                          <div className="ml-7 space-y-2 bg-gray-50 p-3 rounded-md border border-gray-200">
+                            <Label htmlFor="autoCloseDate" className="text-sm font-medium">Application Deadline</Label>
+                            <Input
+                              id="autoCloseDate"
+                              type="datetime-local"
+                              value={formData.autoCloseDate}
+                              onChange={(e) =>
+                                setFormData({ ...formData, autoCloseDate: e.target.value })
+                              }
+                              disabled={isLoading}
+                              required={formData.autoCloseEnabled}
+                              className="bg-white"
+                            />
+                            <p className="text-xs text-amber-600 flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              Applications will be closed automatically after this date
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -311,8 +333,15 @@ export default function NewJobPage() {
                 </div>
 
                 <div className="flex gap-3">
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? 'Creating Job...' : 'Create Job'}
+                  <Button type="submit" disabled={isLoading} className="min-w-[140px]">
+                    {isLoading ? (
+                      <>
+                        <Spinner className="h-4 w-4 mr-2" />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create Job'
+                    )}
                   </Button>
                   <Link href="/dashboard/jobs">
                     <Button type="button" variant="outline" disabled={isLoading}>

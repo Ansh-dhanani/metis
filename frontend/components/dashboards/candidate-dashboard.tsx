@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Briefcase, CheckCircle, Clock, Award, TrendingUp } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 
 interface Application {
   _id: string;
@@ -151,8 +152,8 @@ export default function CandidateDashboard() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <div className="flex items-center justify-center py-8">
+              <Spinner className="h-6 w-6" />
             </div>
           ) : applications.length === 0 ? (
             <div className="text-center py-8 text-gray-500">

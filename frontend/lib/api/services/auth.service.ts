@@ -9,8 +9,6 @@ import type {
   LoginResponse,
   RegisterRequest,
   RegisterResponse,
-  User,
-  UpdateProfileRequest,
 } from '../types';
 
 export const authService = {

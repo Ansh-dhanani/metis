@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ScrollArea } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 import { ArrowLeft, Users, BarChart3, RefreshCw, FileText, Award, UserCheck, Sparkles, Zap } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 import type { Job, Assessment, CandidateRanking } from '@/lib/api/types';
 import { formatDate, getScoreColor } from '@/lib/utils';
 import { DataTable } from '@/components/data-table/data-table';
@@ -136,7 +137,7 @@ export default function JobDetailsPage() {
         if (interviewResult.evaluated > 0) {
           toast.success(`Evaluated ${interviewResult.evaluated} interviews`);
         }
-      } catch (err) {
+      } catch (_err) {
         console.log('No interviews to evaluate');
       }
       
@@ -253,10 +254,10 @@ export default function JobDetailsPage() {
     return (
       <ProtectedRoute requiredRole="hr">
         <DashboardLayout>
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-              <p className="mt-4 text-sm text-gray-500">Loading job...</p>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-4">
+              <Spinner className="h-12 w-12 mx-auto" />
+              <p className="text-sm text-muted-foreground">Loading job details...</p>
             </div>
           </div>
         </DashboardLayout>

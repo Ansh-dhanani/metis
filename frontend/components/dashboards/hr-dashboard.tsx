@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Briefcase, ClipboardList, Users, TrendingUp, Plus } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 import type { Job, Assessment } from '@/lib/api/types';
 
 export default function HRDashboard() {
@@ -64,10 +65,10 @@ export default function HRDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="mt-4 text-sm text-gray-500">Loading dashboard...</p>
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center space-y-4">
+          <Spinner className="h-8 w-8 mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
         </div>
       </div>
     );

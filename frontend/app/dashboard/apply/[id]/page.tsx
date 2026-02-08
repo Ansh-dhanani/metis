@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/protected-route';
 import { DashboardLayout } from '@/components/dashboard-layout';
@@ -17,10 +17,10 @@ import { Badge } from '@/components/ui/badge';
 import { jobsService, authService, applicationsService } from '@/lib/api/services';
 import { useAuth } from '@/contexts/auth-context';
 import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 import { toast } from 'sonner';
-import { getErrorMessage, handleError } from '@/lib/utils/error-handler';
+import { getErrorMessage } from '@/lib/utils/error-handler';
 import type { Job } from '@/lib/api/types';
-import config from '@/lib/config/api';
 
 type Step = 'upload' | 'review' | 'confirm' | 'complete';
 
@@ -56,10 +56,36 @@ export default function JobApplicationPage() {
     portfolioUrl: '',
   });
 
+  const fetchJobDetails = useCallback(async () => {
+    try {
+      const jobData = await jobsService.getJob(jobId);
+      setJob(jobData);
+    } catch (error) {
+      console.error('Failed to fetch job:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [jobId]);
+
+  const checkExistingApplication = useCallback(async () => {
+    if (!user) return;
+    try {
+      const applications = await applicationsService.getCandidateApplications(user.userId);
+      // Only mark as already applied if application is not auto-rejected
+      const validApplication = applications.find((app: any) => app.jobId === jobId && app.eligible !== false);
+      setHasAlreadyApplied(!!validApplication);
+      if (validApplication) {
+        setCurrentStep('complete');
+      }
+    } catch (error) {
+      console.error('Failed to check applications:', error);
+    }
+  }, [user, jobId]);
+
   useEffect(() => {
     fetchJobDetails();
     checkExistingApplication();
-  }, [jobId, user]);
+  }, [fetchJobDetails, checkExistingApplication]);
 
   // Update profile data when user changes
   useEffect(() => {
@@ -82,33 +108,7 @@ export default function JobApplicationPage() {
         });
       }
     }
-  }, [user?.firstName, user?.lastName, user?.email]);
-
-  const fetchJobDetails = async () => {
-    try {
-      const jobData = await jobsService.getJob(jobId);
-      setJob(jobData);
-    } catch (error) {
-      console.error('Failed to fetch job:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const checkExistingApplication = async () => {
-    if (!user) return;
-    try {
-      const applications = await applicationsService.getCandidateApplications(user.userId);
-      // Only mark as already applied if application is not auto-rejected
-      const validApplication = applications.find((app: any) => app.jobId === jobId && app.eligible !== false);
-      setHasAlreadyApplied(!!validApplication);
-      if (validApplication) {
-        setCurrentStep('complete');
-      }
-    } catch (error) {
-      console.error('Failed to check applications:', error);
-    }
-  };
+  }, [user?.firstName, user?.lastName, user?.email, router]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -218,7 +218,6 @@ export default function JobApplicationPage() {
       
       // Try to submit - catch will handle rejections
       let response;
-      let wasRejected = false;
       
       try {
         response = await applicationsService.submitApplication({
@@ -289,7 +288,6 @@ export default function JobApplicationPage() {
       // Get error details
       const errorMessage = getErrorMessage(error);
       const errorData = error?.data || {};
-      const resumeScore = errorData.resumeScore;
       
       console.log('[SUBMIT] Error message:', errorMessage);
       console.log('[SUBMIT] Error data:', errorData);
@@ -333,10 +331,10 @@ export default function JobApplicationPage() {
     return (
       <ProtectedRoute requiredRole="candidate">
         <DashboardLayout>
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-              <p className="mt-4 text-sm text-muted-foreground">Loading job details...</p>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-4">
+              <Spinner className="h-12 w-12 mx-auto" />
+              <p className="text-sm text-muted-foreground">Loading job details...</p>
             </div>
           </div>
         </DashboardLayout>

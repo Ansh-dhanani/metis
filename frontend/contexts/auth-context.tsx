@@ -7,7 +7,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authService } from '@/lib/api/services';
-import type { User, UserRole } from '@/lib/api/types';
+import type { User } from '@/lib/api/types';
 
 interface AuthContextType {
   user: User | null;
@@ -49,7 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await authService.login({ email, password });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _response = await authService.login({ email, password });
     const userData = await authService.getProfile();
     setUser(userData);
   };

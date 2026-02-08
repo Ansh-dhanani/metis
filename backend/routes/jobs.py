@@ -9,18 +9,32 @@ jobs_bp = Blueprint('jobs', __name__)
 @jobs_bp.route('/', methods=['POST'])
 def create_job():
     data = request.json
+    
+    # Parse autoCloseDate if provided
+    auto_close_date = None
+    if data.get('autoCloseEnabled') and data.get('autoCloseDate'):
+        try:
+            from dateutil import parser
+            auto_close_date = parser.parse(data.get('autoCloseDate'))
+        except:
+            auto_close_date = data.get('autoCloseDate')  # Store as string if parsing fails
+    
     job_doc = {
         "hrId": data.get("hrId"),  # HR user ID
         "title": data.get("title", "Untitled Job"),
+        "description": data.get("description", ""),
+        "location": data.get("location", ""),
+        "type": data.get("type", "full-time"),
         "rawText": data.get("rawText", ""),
         "createdAt": datetime.now(),
         "updatedAt": datetime.now(),
         "parsedData": None,
-        "skillWeights": None,
+        "skillWeights": data.get("skillWeights", None),
         "status": "open",  # open, closed, filled
         "autoSelectTopCandidate": data.get("autoSelectTopCandidate", False),
         "autoCloseEnabled": data.get("autoCloseEnabled", False),
-        "autoCloseDate": data.get("autoCloseDate"),  # ISO date string
+        "autoCloseDate": auto_close_date,  # Datetime or string
+        "deadline": auto_close_date,  # Alias for easier reference
         "selectedCandidateId": None
     }
     result = db.jobs.insert_one(job_doc)
@@ -33,14 +47,48 @@ def get_jobs():
         query = {}
         if hr_id:
             query['hrId'] = hr_id
+        
+        # Check and auto-close jobs that have passed their deadline
+        current_time = datetime.now()
+        jobs_to_close = db.jobs.find({
+            "autoCloseEnabled": True,
+            "status": "open",
+            "autoCloseDate": {"$ne": None}
+        })
+        
+        for job in jobs_to_close:
+            auto_close_date = job.get('autoCloseDate')
+            if auto_close_date:
+                try:
+                    # Handle both datetime and string formats
+                    if isinstance(auto_close_date, str):
+                        from dateutil import parser
+                        auto_close_date = parser.parse(auto_close_date)
+                    
+                    if auto_close_date < current_time:
+                        db.jobs.update_one(
+                            {"_id": job['_id']},
+                            {"$set": {"status": "closed", "closedAt": current_time}}
+                        )
+                        print(f"Auto-closed job {job['_id']} - deadline passed")
+                except Exception as e:
+                    print(f"Error checking auto-close for job {job['_id']}: {e}")
             
         jobs = list(db.jobs.find(query).sort("createdAt", -1))
         for job in jobs:
             job['_id'] = str(job['_id'])
             if 'hrId' in job and isinstance(job['hrId'], ObjectId):
                 job['hrId'] = str(job['hrId'])
+            # Format deadline for frontend
+            if job.get('deadline'):
+                if isinstance(job['deadline'], datetime):
+                    job['deadline'] = job['deadline'].isoformat()
+            if job.get('autoCloseDate'):
+                if isinstance(job['autoCloseDate'], datetime):
+                    job['autoCloseDate'] = job['autoCloseDate'].isoformat()
         return jsonify({"jobs": jobs})
     except Exception as e:
+        print(f"Error in get_jobs: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @jobs_bp.route('/<job_id>', methods=['GET'])

@@ -9,10 +9,10 @@ import { ProtectedRoute } from '@/components/protected-route';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { assessmentsService, rankingsService } from '@/lib/api/services';
-import { Search, Mail, Award, TrendingUp } from 'lucide-react';
+import { rankingsService } from '@/lib/api/services';
+import { Search, Mail, Award } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 import type { CandidateRanking } from '@/lib/api/types';
 
 export default function CandidatesPage() {
@@ -77,8 +77,11 @@ export default function CandidatesPage() {
 
         {/* Candidates Grid */}
         {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">
-            Loading candidates...
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="text-center space-y-4">
+              <Spinner className="h-12 w-12 mx-auto" />
+              <p className="text-sm text-muted-foreground">Loading candidates...</p>
+            </div>
           </div>
         ) : filteredCandidates.length === 0 ? (
           <Card>

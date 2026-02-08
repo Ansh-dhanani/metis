@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/protected-route';
 import { DashboardLayout } from '@/components/dashboard-layout';
@@ -16,7 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { jobsService, applicationsService } from '@/lib/api/services';
 import { useAuth } from '@/contexts/auth-context';
 import { handleError } from '@/lib/utils/error-handler';
-import { Search, Briefcase, MapPin, Clock, DollarSign, Filter, CheckCircle } from 'lucide-react';
+import { Search, Briefcase, MapPin, Clock, Filter, CheckCircle } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 import type { Job } from '@/lib/api/types';
 
 export default function BrowseJobsPage() {
@@ -29,12 +30,23 @@ export default function BrowseJobsPage() {
   const [filterLocation, setFilterLocation] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchApplications = useCallback(async () => {
+    if (!user) return;
+    try {
+      const applications = await applicationsService.getCandidateApplications(user.userId);
+      const jobIds = new Set(applications.map((app: any) => app.jobId));
+      setAppliedJobIds(jobIds);
+    } catch (error) {
+      handleError(error, 'Failed to load your applications.');
+    }
+  }, [user]);
+
   useEffect(() => {
     fetchJobs();
     if (user) {
       fetchApplications();
     }
-  }, [user]);
+  }, [user, fetchApplications]);
 
   const fetchJobs = async () => {
     try {
@@ -45,17 +57,6 @@ export default function BrowseJobsPage() {
       setJobs([]);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const fetchApplications = async () => {
-    if (!user) return;
-    try {
-      const applications = await applicationsService.getCandidateApplications(user.userId);
-      const jobIds = new Set(applications.map((app: any) => app.jobId));
-      setAppliedJobIds(jobIds);
-    } catch (error) {
-      handleError(error, 'Failed to load your applications.');
     }
   };
 
@@ -71,14 +72,17 @@ export default function BrowseJobsPage() {
 
     // Search filter
     const matchesSearch = searchTerm === '' || 
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.location?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Type filter
-    const matchesType = filterType === 'all' || job.type === filterType;
+    // Type filter - case insensitive comparison
+    const matchesType = filterType === 'all' || 
+      (job.type && filterType && job.type.toLowerCase() === filterType.toLowerCase());
 
-    // Location filter
-    const matchesLocation = filterLocation === 'all' || job.location === filterLocation;
+    // Location filter - case insensitive comparison
+    const matchesLocation = filterLocation === 'all' || 
+      (job.location && filterLocation && job.location.toLowerCase() === filterLocation.toLowerCase());
 
     return matchesSearch && matchesType && matchesLocation;
   });
@@ -171,8 +175,11 @@ export default function BrowseJobsPage() {
 
           {/* Jobs Grid */}
           {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Loading jobs...
+            <div className="flex items-center justify-center min-h-[50vh]">
+              <div className="text-center space-y-4">
+                <Spinner className="h-12 w-12 mx-auto" />
+                <p className="text-sm text-muted-foreground">Loading jobs...</p>
+              </div>
             </div>
           ) : filteredJobs.length === 0 ? (
             <Card>
@@ -188,7 +195,7 @@ export default function BrowseJobsPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredJobs.map((job) => (
-                <Card key={job._id} className="hover:shadow-lg transition-shadow">
+                <Card key={job._id} className="hover:shadow-lg transition-shadow flex flex-col">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -202,9 +209,9 @@ export default function BrowseJobsPage() {
                       </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-4 flex-1 flex flex-col">
                     {/* Job Details */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 flex-1">
                       {job.location && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4" />
@@ -215,7 +222,7 @@ export default function BrowseJobsPage() {
                         <Clock className="h-4 w-4" />
                         <span>Posted {new Date(job.createdAt).toLocaleDateString()}</span>
                       </div>
-                    </div>
+                    
 
                     {/* Description Preview */}
                     {job.description && (
@@ -239,8 +246,10 @@ export default function BrowseJobsPage() {
                         )}
                       </div>
                     )}
+                    </div>
 
-                    {/* Apply Button */}
+                    {/* Apply Button - Always at bottom */}
+                    <div className="pt-2">
                     {appliedJobIds.has(job._id) ? (
                       <Button 
                         className="w-full" 
@@ -258,6 +267,7 @@ export default function BrowseJobsPage() {
                         Apply Now
                       </Button>
                     )}
+                    </div>
                   </CardContent>
                 </Card>
               ))}

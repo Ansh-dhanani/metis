@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/protected-route';
 import { DashboardLayout } from '@/components/dashboard-layout';
@@ -14,7 +14,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, TrendingUp, Award, ArrowRight } from 'lucide-react';
-import { toast } from 'sonner';import config from '@/lib/config/api';
+import { Spinner } from '@/components/ui/spinner';
+import { toast } from 'sonner';
+import config from '@/lib/config/api';
 interface EvaluationData {
   finalScore: number;
   round1Score: number;
@@ -41,11 +43,7 @@ export default function InterviewResultsPage() {
   const [data, setData] = useState<EvaluationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchResults();
-  }, [applicationId]);
-
-  const fetchResults = async () => {
+  const fetchResults = useCallback(async () => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://metis-im23.vercel.app'}/api/applications/${applicationId}`, {
         headers: {
@@ -69,16 +67,20 @@ export default function InterviewResultsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [applicationId]);
+
+  useEffect(() => {
+    fetchResults();
+  }, [fetchResults]);
 
   if (isLoading) {
     return (
       <ProtectedRoute requiredRole="candidate">
         <DashboardLayout>
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-              <p className="mt-4 text-sm text-muted-foreground">Loading results...</p>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-4">
+              <Spinner className="h-12 w-12 mx-auto" />
+              <p className="text-sm text-muted-foreground">Loading results...</p>
             </div>
           </div>
         </DashboardLayout>

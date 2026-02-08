@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { authService, evaluationService } from "@/lib/api/services";
 import { toast } from "sonner";
 import { handleError } from '@/lib/utils/error-handler';
 import { Loader2, Edit, Save, X, Plus, Trash2, Sparkles, Upload, FileText } from "lucide-react";
+import { Spinner } from '@/components/ui/spinner';
 import { Badge } from "@/components/ui/badge";
 
 interface Experience {
@@ -82,11 +83,7 @@ export default function ProfilePage() {
 
   const [newSkill, setNewSkill] = useState("");
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
       const response: any = await authService.getProfile();
@@ -123,7 +120,11 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   const handleSave = async () => {
     try {
@@ -399,7 +400,7 @@ export default function ProfilePage() {
                 </Button>
                 <Button onClick={handleSave} disabled={saving}>
                   {saving ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Spinner className="h-4 w-4 mr-2" />
                   ) : (
                     <Save className="h-4 w-4 mr-2" />
                   )}
@@ -444,7 +445,7 @@ export default function ProfilePage() {
                   >
                     {isParsing ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <Spinner className="h-4 w-4 mr-2" />
                         Parsing Resume...
                       </>
                     ) : (

@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { ProtectedRoute } from '@/components/protected-route';
 import { DashboardLayout } from '@/components/dashboard-layout';
@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { jobsService } from '@/lib/api/services';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Spinner } from '@/components/ui/spinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
@@ -29,7 +30,7 @@ export default function JobsPage() {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('open');
 
-  const fetchJobs = async () => {
+  const fetchJobs = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -41,11 +42,11 @@ export default function JobsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchJobs();
-  }, [user, pathname]);
+  }, [fetchJobs, pathname]);
 
   const handleDeleteJob = async (jobId: string, jobTitle: string) => {
     if (isDeleting) return; // Prevent multiple deletions at once
@@ -73,10 +74,10 @@ export default function JobsPage() {
     return (
       <ProtectedRoute requiredRole="hr">
         <DashboardLayout>
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-              <p className="mt-4 text-sm text-gray-500">Loading jobs...</p>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-4">
+              <div className="h-12 w-12 mx-auto animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+              <p className="text-sm text-muted-foreground">Loading jobs...</p>
             </div>
           </div>
         </DashboardLayout>
@@ -188,7 +189,7 @@ export default function JobsPage() {
                               disabled={isDeleting === job._id}
                             >
                               {isDeleting === job._id ? (
-                                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                <Spinner className="h-4 w-4" />
                               ) : (
                                 <Trash2 className="h-4 w-4" />
                               )}
@@ -257,7 +258,7 @@ export default function JobsPage() {
                               disabled={isDeleting === job._id}
                             >
                               {isDeleting === job._id ? (
-                                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                <Spinner className="h-4 w-4" />
                               ) : (
                                 <Trash2 className="h-4 w-4" />
                               )}

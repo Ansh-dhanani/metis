@@ -14,7 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Mic, MicOff, Send, Loader2, CheckCircle2, Volume2 } from 'lucide-react';
+import { Mic, MicOff, Send, CheckCircle2, Volume2 } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
 import io, { Socket } from 'socket.io-client';
@@ -49,6 +50,58 @@ export default function InterviewPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const playAudio = (base64Audio: string) => {
+    try {
+      const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
+      audio.play().catch(err => console.error('Audio play error:', err));
+    } catch (err) {
+      console.error('Audio creation error:', err);
+    }
+  };
+
+  const handleInterviewComplete = async () => {
+    setIsComplete(true);
+    toast.success('Interview completed! Evaluating your performance...');
+
+    // PIPELINE STEP 3: Auto-evaluate interview
+    try {
+      const response = await fetch(`${config.apiUrl}/api/evaluation/evaluate-interview/${applicationId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      const data = await response.json();
+      
+      if (data.final_score !== undefined) {
+        setFinalScore(data.final_score);
+        
+        toast.success(
+          <div>
+            <div className="font-semibold">🎉 Evaluation Complete!</div>
+            <div className="text-sm mt-1">
+              Final Score: {data.final_score}/100
+            </div>
+            <div className="text-xs mt-1">
+              Resume ({data.round1_score}) + Interview ({data.round2_score})
+            </div>
+          </div>,
+          { duration: 5000 }
+        );
+
+        // Redirect to results page after 3 seconds
+        setTimeout(() => {
+          router.push(`/dashboard/interview/results/${applicationId}`);
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Evaluation error:', error);
+      toast.error('Interview saved but evaluation pending');
+    }
+  };
 
   useEffect(() => {
     // Connect to WebSocket
@@ -154,15 +207,6 @@ Resume Summary:
     }
   };
 
-  const playAudio = (base64Audio: string) => {
-    try {
-      const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
-      audio.play().catch(err => console.error('Audio play error:', err));
-    } catch (err) {
-      console.error('Audio creation error:', err);
-    }
-  };
-
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -209,7 +253,7 @@ Resume Summary:
         socket.emit('send_audio', { audio: base64 });
       };
       reader.readAsDataURL(audioBlob);
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to send audio');
       setIsProcessing(false);
     }
@@ -221,49 +265,6 @@ Resume Summary:
     setIsProcessing(true);
     socket.emit('send_text', { text: textInput });
     setTextInput('');
-  };
-
-  const handleInterviewComplete = async () => {
-    setIsComplete(true);
-    toast.success('Interview completed! Evaluating your performance...');
-
-    // PIPELINE STEP 3: Auto-evaluate interview
-    try {
-      const response = await fetch(`${config.apiUrl}/api/evaluation/evaluate-interview/${applicationId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      const data = await response.json();
-      
-      if (data.final_score !== undefined) {
-        setFinalScore(data.final_score);
-        
-        toast.success(
-          <div>
-            <div className="font-semibold">🎉 Evaluation Complete!</div>
-            <div className="text-sm mt-1">
-              Final Score: {data.final_score}/100
-            </div>
-            <div className="text-xs mt-1">
-              Resume ({data.round1_score}) + Interview ({data.round2_score})
-            </div>
-          </div>,
-          { duration: 5000 }
-        );
-
-        // Redirect to results page after 3 seconds
-        setTimeout(() => {
-          router.push(`/dashboard/interview/results/${applicationId}`);
-        }, 3000);
-      }
-    } catch (error) {
-      console.error('Evaluation error:', error);
-      toast.error('Interview saved but evaluation pending');
-    }
   };
 
   const progress = currentQuestion > 0 ? (currentQuestion / 10) * 100 : 0;
@@ -360,7 +361,7 @@ Resume Summary:
                       {isProcessing && (
                         <div className="flex justify-start">
                           <div className="bg-muted rounded-lg p-4">
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Spinner className="h-4 w-4" />
                           </div>
                         </div>
                       )}
@@ -479,7 +480,7 @@ Resume Summary:
                       {isProcessing && (
                         <div className="p-3 rounded-md bg-gray-100 dark:bg-gray-800 border-l-4 border-gray-400">
                           <div className="flex items-center gap-2">
-                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <Spinner className="h-3 w-3" />
                             <span className="text-xs text-muted-foreground">Processing...</span>
                           </div>
                         </div>
