@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { assessmentsService, rankingsService } from '@/lib/api/services';
-import { Award, TrendingUp, Users, Download, ClipboardList } from 'lucide-react';
+import { Award, TrendingUp, Users, Download, ClipboardList, BarChart3, PieChart } from 'lucide-react';
 import { handleError } from '@/lib/utils/error-handler';
 import type { Assessment, CandidateRanking } from '@/lib/api/types';
 
@@ -65,6 +65,24 @@ export default function AnalyticsPage() {
     if (score >= 60) return <Badge className="bg-yellow-100 text-yellow-800">Good</Badge>;
     return <Badge className="bg-red-100 text-red-800">Needs Improvement</Badge>;
   };
+
+  // Calculate score distribution
+  const scoreDistribution = {
+    excellent: rankings.filter(r => r.overallScore >= 80).length,
+    good: rankings.filter(r => r.overallScore >= 60 && r.overallScore < 80).length,
+    needsImprovement: rankings.filter(r => r.overallScore < 60).length,
+  };
+
+  // Calculate average scores by category
+  const avgSkillScore = rankings.length > 0
+    ? rankings.reduce((acc, r) => acc + r.skillScore, 0) / rankings.length
+    : 0;
+  const avgExperienceScore = rankings.length > 0
+    ? rankings.reduce((acc, r) => acc + r.experienceScore, 0) / rankings.length
+    : 0;
+  const avgCultureScore = rankings.length > 0
+    ? rankings.reduce((acc, r) => acc + r.cultureFitScore, 0) / rankings.length
+    : 0;
 
   return (
     <ProtectedRoute requiredRole="hr">
@@ -146,6 +164,7 @@ export default function AnalyticsPage() {
           <TabsList>
             <TabsTrigger value="rankings">Candidate Rankings</TabsTrigger>
             <TabsTrigger value="assessments">All Assessments</TabsTrigger>
+            <TabsTrigger value="insights">Insights</TabsTrigger>
           </TabsList>
 
           {/* Rankings Tab */}
@@ -293,6 +312,178 @@ export default function AnalyticsPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Insights Tab */}
+          <TabsContent value="insights" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Score Distribution */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <PieChart className="h-5 w-5" />
+                    Score Distribution
+                  </CardTitle>
+                  <CardDescription>
+                    Breakdown of candidate performance levels
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                          <span className="text-sm font-medium">Excellent (≥80%)</span>
+                        </div>
+                        <span className="text-sm font-bold">{scoreDistribution.excellent}</span>
+                      </div>
+                      <Progress 
+                        value={rankings.length > 0 ? (scoreDistribution.excellent / rankings.length) * 100 : 0} 
+                        className="h-2 bg-green-100"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                          <span className="text-sm font-medium">Good (60-79%)</span>
+                        </div>
+                        <span className="text-sm font-bold">{scoreDistribution.good}</span>
+                      </div>
+                      <Progress 
+                        value={rankings.length > 0 ? (scoreDistribution.good / rankings.length) * 100 : 0} 
+                        className="h-2 bg-yellow-100"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                          <span className="text-sm font-medium">Needs Improvement (&lt;60%)</span>
+                        </div>
+                        <span className="text-sm font-bold">{scoreDistribution.needsImprovement}</span>
+                      </div>
+                      <Progress 
+                        value={rankings.length > 0 ? (scoreDistribution.needsImprovement / rankings.length) * 100 : 0} 
+                        className="h-2 bg-red-100"
+                      />
+                    </div>
+                  </div>
+                  
+                  {rankings.length > 0 && (
+                    <div className="pt-4 border-t space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Pass Rate (≥60%)</span>
+                        <span className="font-bold text-green-600">
+                          {(((scoreDistribution.excellent + scoreDistribution.good) / rankings.length) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Category Performance */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Average Scores by Category
+                  </CardTitle>
+                  <CardDescription>
+                    Performance breakdown across evaluation criteria
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Skills Match</span>
+                        <span className={`text-sm font-bold ${getScoreColor(avgSkillScore)}`}>
+                          {avgSkillScore.toFixed(1)}%
+                        </span>
+                      </div>
+                      <Progress value={avgSkillScore} className="h-3" />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Experience</span>
+                        <span className={`text-sm font-bold ${getScoreColor(avgExperienceScore)}`}>
+                          {avgExperienceScore.toFixed(1)}%
+                        </span>
+                      </div>
+                      <Progress value={avgExperienceScore} className="h-3" />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Culture Fit</span>
+                        <span className={`text-sm font-bold ${getScoreColor(avgCultureScore)}`}>
+                          {avgCultureScore.toFixed(1)}%
+                        </span>
+                      </div>
+                      <Progress value={avgCultureScore} className="h-3" />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">Overall Average</span>
+                      <span className={`text-lg font-bold ${getScoreColor(averageScore)}`}>
+                        {averageScore.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Key Insights */}
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle>Key Insights</CardTitle>
+                  <CardDescription>
+                    Summary of hiring performance metrics
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="p-4 rounded-lg border bg-card">
+                      <div className="text-2xl font-bold text-green-600 mb-1">
+                        {rankings.length > 0 
+                          ? Math.max(...rankings.map(r => r.overallScore)).toFixed(1) 
+                          : '0'}%
+                      </div>
+                      <p className="text-sm text-muted-foreground">Highest Score</p>
+                      {rankings.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {rankings.sort((a, b) => b.overallScore - a.overallScore)[0]?.candidateName}
+                        </p>
+                      )}
+                    </div>
+                    <div className="p-4 rounded-lg border bg-card">
+                      <div className="text-2xl font-bold text-blue-600 mb-1">
+                        {rankings.length > 0 
+                          ? rankings.reduce((acc, r) => acc + r.overallScore, 0) / rankings.length 
+                          : 0}%
+                      </div>
+                      <p className="text-sm text-muted-foreground">Median Score</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Across {rankings.length} candidates
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border bg-card">
+                      <div className="text-2xl font-bold text-purple-600 mb-1">
+                        {completedAssessments.length}
+                      </div>
+                      <p className="text-sm text-muted-foreground">Completed Assessments</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {assessments.length - completedAssessments.length} pending
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
