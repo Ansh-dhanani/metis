@@ -26,19 +26,28 @@ if IS_PRODUCTION and not IS_VERCEL:
 frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 production_url = os.getenv('PRODUCTION_FRONTEND_URL', 'https://metis-hire.vercel.app')
 
-CORS(app, resources={
-    r"/api/*": {
-        "origins": [
-            frontend_url,
-            production_url,
-            "https://metis-hire.vercel.app",
-            "https://*.vercel.app"
-        ],
-        "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
-    }
-})
+# More permissive CORS for development
+if IS_PRODUCTION:
+    CORS(app, resources={
+        r"/api/*": {
+            "origins": [
+                frontend_url,
+                production_url,
+                "https://metis-hire.vercel.app",
+                "https://*.vercel.app"
+            ],
+            "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True
+        }
+    })
+else:
+    # Development: Allow all origins
+    CORS(app, 
+         origins="*",
+         methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+         allow_headers=["Content-Type", "Authorization"],
+         supports_credentials=False)
 
 # Initialize SocketIO only when NOT on Vercel (serverless doesn't support WebSockets)
 socketio = None

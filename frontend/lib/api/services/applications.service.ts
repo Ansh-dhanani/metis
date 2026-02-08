@@ -19,6 +19,10 @@ export interface Application {
   status: string;
   stage: string;
   appliedAt: string;
+  resumeScore?: number;
+  metisEvaluation?: any;
+  eligible?: boolean;
+  rejectionReason?: string;
   profileSnapshot: {
     skills: string[];
     experience: any;
@@ -31,6 +35,25 @@ export interface Application {
     portfolioUrl: string;
   };
   assessmentScore?: number;
+  interviewScore?: number;
+  finalScore?: number;
+  round1Score?: number;
+  round2Score?: number;
+  scoringBreakdown?: {
+    round1: {
+      name: string;
+      score: number;
+      weight: string;
+      contribution: number;
+    };
+    round2: {
+      name: string;
+      score: number;
+      weight: string;
+      contribution: number;
+    };
+    finalScore: number;
+  };
   jobTitle?: string;
   jobCompany?: string;
 }

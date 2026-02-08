@@ -99,9 +99,10 @@ export default function JobApplicationPage() {
     if (!user) return;
     try {
       const applications = await applicationsService.getCandidateApplications(user.userId);
-      const alreadyApplied = applications.some((app: any) => app.jobId === jobId);
-      setHasAlreadyApplied(alreadyApplied);
-      if (alreadyApplied) {
+      // Only mark as already applied if application is not auto-rejected
+      const validApplication = applications.find((app: any) => app.jobId === jobId && app.eligible !== false);
+      setHasAlreadyApplied(!!validApplication);
+      if (validApplication) {
         setCurrentStep('complete');
       }
     } catch (error) {
@@ -117,6 +118,15 @@ export default function JobApplicationPage() {
 
   const handleUploadAndParse = async () => {
     if (!resumeFile) return;
+
+    // Check if user is a candidate
+    if (user?.role !== 'candidate') {
+      toast.error('Only candidates can upload resumes', {
+        description: 'Please ensure you are logged in with a candidate account.',
+        duration: 6000
+      });
+      return;
+    }
 
     setIsParsing(true);
     try {
@@ -137,11 +147,15 @@ export default function JobApplicationPage() {
         experience: response.experience || prev.experience || {},
       }));
 
+      toast.success('Resume uploaded and parsed successfully!', { duration: 3000 });
       setCurrentStep('review');
     } catch (error: any) {
       console.error('Failed to parse resume:', error);
       const errorMessage = error?.message || 'Failed to parse resume. Please try again or enter details manually.';
-      alert(errorMessage);
+      toast.error('Resume Upload Failed', {
+        description: errorMessage,
+        duration: 6000
+      });
     } finally {
       setIsParsing(false);
     }
@@ -152,6 +166,8 @@ export default function JobApplicationPage() {
   };
 
   const handleSubmitApplication = async () => {
+    console.log('[SUBMIT] Starting application submission...');
+    
     // Validate required fields
     const errors: string[] = [];
     
@@ -159,76 +175,154 @@ export default function JobApplicationPage() {
     if (!profileData.lastName?.trim()) errors.push('Last Name');
     if (!profileData.email?.trim()) errors.push('Email');
     if (!profileData.phone?.trim()) errors.push('Phone');
-    if (!profileData.skills || profileData.skills.length === 0) errors.push('Skills');
+    if (!profileData.skills || profileData.skills.length === 0) errors.push('Skills (at least one skill required)');
     
     if (errors.length > 0) {
-      toast.error(`Please fill in the following required fields: ${errors.join(', ')}`);
+      console.log('[SUBMIT] Validation failed:', errors);
+      toast.error(`Missing Required Fields: ${errors.join(', ')}`, { duration: 6000 });
+      return;
+    }
+    
+    // Check if resume is uploaded (check user profile)
+    if (!user?.resume?.rawText && !resumeFile) {
+      console.log('[SUBMIT] No resume found');
+      toast.error('Please upload your resume before applying', { duration: 6000 });
+      setCurrentStep('upload');
       return;
     }
 
+    console.log('[SUBMIT] Validation passed, submitting...');
     setIsSubmitting(true);
+    
     try {
       // Update user profile first
-      await authService.updateProfile(profileData);
-      
-      // Submit application
-      const response = await applicationsService.submitApplication({
-        jobId,
-        profileSnapshot: profileData,
-      });
-
-      toast.success('Application submitted successfully!');
-      
-      // PIPELINE STEP 1: Auto-evaluate resume (Round 1)
-      toast.loading('Evaluating your resume with AI...', { id: 'evaluating' });
+      console.log('[SUBMIT] Updating profile...');
+      toast.loading('Updating your profile...', { id: 'submitting' });
       
       try {
-        const applicationId = response.applicationId || response._id;
-        
-        // Call METIS evaluation for this specific application
-        await fetch(`${config.apiUrl}/api/evaluation/evaluate/${applicationId}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
+        await authService.updateProfile(profileData);
+        console.log('[SUBMIT] Profile updated successfully');
+      } catch (profileError) {
+        console.error('[SUBMIT] Profile update failed:', profileError);
+        toast.error('Failed to update profile', { 
+          id: 'submitting',
+          description: getErrorMessage(profileError),
+          duration: 6000 
         });
-        
-        toast.success('Resume evaluated! Starting your interview...', { id: 'evaluating' });
-        
-        // PIPELINE STEP 2: Redirect to AI Interview (Round 2)
-        setTimeout(() => {
-          router.push(`/dashboard/interview/${applicationId}?jobId=${jobId}`);
-        }, 1500);
-        
-      } catch (evalError) {
-        console.error('Evaluation error:', evalError);
-        toast.error('Resume submitted but evaluation pending. You can start the interview now.', { id: 'evaluating' });
-        
-        // Still redirect to interview even if evaluation fails
-        setTimeout(() => {
-          const applicationId = response.applicationId || response._id;
-          router.push(`/dashboard/interview/${applicationId}?jobId=${jobId}`);
-        }, 2000);
+        throw profileError;
       }
       
-    } catch (error: any) {
-      const errorMessage = getErrorMessage(error);
+      // Submit application - this will trigger AI scoring
+      console.log('[SUBMIT] Submitting application to backend...');
+      toast.loading('Submitting application and scoring your resume with AI...', { id: 'submitting' });
       
+      // Try to submit - catch will handle rejections
+      let response;
+      let wasRejected = false;
+      
+      try {
+        response = await applicationsService.submitApplication({
+          jobId,
+          profileSnapshot: profileData,
+        });
+        console.log('[SUBMIT] Application response:', response);
+      } catch (submitError: any) {
+        // Check if this is an eligibility rejection (400 error with resume score)
+        const errorData = submitError?.data || {};
+        console.log('[SUBMIT] Caught submit error:', submitError);
+        console.log('[SUBMIT] Error status:', submitError?.status);
+        console.log('[SUBMIT] Error data:', errorData);
+        
+        if (submitError?.status === 400 && (errorData.eligible === false || errorData.resumeScore !== undefined)) {
+          console.log('[SUBMIT] Application rejected - low score:', errorData.resumeScore);
+          
+          // Set submitting false immediately to stop any loading states
+          setIsSubmitting(false);
+          
+          // Dismiss loading toast
+          toast.dismiss('submitting');
+          
+          // Show clean consolidated rejection message
+          const rejectionMessage = errorData.error || errorData.message || 
+            `Your resume score (${errorData.resumeScore}/100) is below the minimum threshold of 20.`;
+          
+          toast.error('Application Not Eligible', {
+            description: `${rejectionMessage} Please improve your resume with relevant skills and experience, then reapply.`,
+            duration: 8000
+          });
+          
+          // Change to upload step to allow re-upload
+          setTimeout(() => {
+            setCurrentStep('upload');
+          }, 2000);
+          
+          return;
+        }
+        
+        // If not a rejection, re-throw to be handled by outer catch
+        throw submitError;
+      }
+
+      // Success - candidate is eligible
+      console.log('[SUBMIT] Application successful! Score:', response.resumeScore);
+      toast.success(
+        `Application submitted successfully! Resume Score: ${response.resumeScore}/100 ✓`, 
+        { id: 'submitting', duration: 5000 }
+      );
+      
+      // Show eligibility confirmation
+      toast.success(
+        `🎉 Congratulations! You are eligible for the interview round.`,
+        { duration: 5000 }
+      );
+      
+      // PIPELINE STEP 2: Redirect to AI Interview (Round 2)
+      setTimeout(() => {
+        const applicationId = response.applicationId || response._id;
+        console.log('[SUBMIT] Redirecting to interview:', applicationId);
+        router.push(`/dashboard/interview/${applicationId}?jobId=${jobId}`);
+      }, 2000);
+      
+    } catch (error: any) {
+      console.error('[SUBMIT] Application submission failed:', error);
+      
+      // Get error details
+      const errorMessage = getErrorMessage(error);
+      const errorData = error?.data || {};
+      const resumeScore = errorData.resumeScore;
+      
+      console.log('[SUBMIT] Error message:', errorMessage);
+      console.log('[SUBMIT] Error data:', errorData);
+      
+      // Handle other errors (rejection is already handled above)
       if (errorMessage.includes('already applied')) {
-        toast.error('You have already applied for this job.');
+        toast.dismiss('submitting');
+        toast.error('Already Applied', { 
+          description: 'You have already applied for this job and your application is under review.',
+          duration: 6000 
+        });
         setHasAlreadyApplied(true);
         setCurrentStep('complete');
-      } else if (errorMessage.includes('complete your profile') || 
-                 errorMessage.includes('upload your resume') ||
-                 errorMessage.includes('add your skills')) {
-        toast.error(errorMessage);
-        // Stay on current step so user can fix the issues
+      } else if (errorMessage.includes('complete your profile')) {
+        console.log('[SUBMIT] Profile incomplete error');
+        toast.error('Profile Incomplete', { id: 'submitting', duration: 6000, description: errorMessage });
+      } else if (errorMessage.includes('upload your resume')) {
+        console.log('[SUBMIT] Resume required error');
+        toast.error('Resume Required', { id: 'submitting', duration: 6000, description: errorMessage });
+        setCurrentStep('upload');
+      } else if (errorMessage.includes('add your skills')) {
+        console.log('[SUBMIT] Skills required error');
+        toast.error('Skills Required', { id: 'submitting', duration: 6000, description: errorMessage });
       } else if (errorMessage.includes('no longer accepting')) {
-        toast.error('This job is no longer accepting applications.');
-        setCurrentStep('complete');
+        console.log('[SUBMIT] Job closed error');
+        toast.error('Job Closed', { id: 'submitting', duration: 6000, description: 'This job is no longer accepting applications.' });
       } else {
-        handleError(error, 'Failed to submit application. Please try again.');
+        console.log('[SUBMIT] Generic error');
+        toast.dismiss('submitting');
+        toast.error('Submission Failed', { 
+          duration: 6000, 
+          description: errorMessage || 'An unexpected error occurred. Please try again.'
+        });
       }
     } finally {
       setIsSubmitting(false);
@@ -875,7 +969,7 @@ export default function JobApplicationPage() {
                 </h2>
                 <p className="text-muted-foreground mb-6">
                   {hasAlreadyApplied 
-                    ? `You have already applied for ${job?.title || 'this position'}. We'll notify you when there are updates.`
+                    ? `You have already applied for ${job?.title || 'this position'} and your application is under review. We'll notify you when there are updates.`
                     : `Your application for ${job?.title || 'this position'} has been successfully submitted.`
                   }
                 </p>

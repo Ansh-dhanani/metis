@@ -13,6 +13,12 @@ export function getErrorMessage(error: unknown): string {
     // Include details if available
     if (error.data && typeof error.data === 'object') {
       const data = error.data as Record<string, any>;
+      
+      // Return the error message from data if available
+      if (data.error) {
+        return data.error;
+      }
+      
       if (data.details) {
         return `${error.message}\n${data.details}`;
       }
@@ -33,6 +39,16 @@ export function getErrorMessage(error: unknown): string {
   }
   
   return 'An unexpected error occurred';
+}
+
+/**
+ * Extract error data for additional processing
+ */
+export function getErrorData(error: unknown): Record<string, any> | null {
+  if (error instanceof APIError && error.data && typeof error.data === 'object') {
+    return error.data as Record<string, any>;
+  }
+  return null;
 }
 
 /**

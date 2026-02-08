@@ -65,15 +65,73 @@ def submit_application():
     if existing_application:
         return jsonify({"error": "You have already applied for this job"}), 400
     
-    # Create application
+    # Score resume against job requirements using AI
+    resume_score = 0
+    resume_evaluation = None
+    is_eligible = False
+    rejection_reason = None
+    
+    try:
+        from models.metis.evaluator import evaluate_candidate
+        
+        resume_text = user.get('resume', {}).get('rawText', '')
+        github_url = user.get('githubUrl')
+        portfolio_url = user.get('portfolioUrl')
+        
+        # Run METIS AI evaluation
+        resume_evaluation = evaluate_candidate(
+            resume_text=resume_text,
+            github_url=github_url,
+            portfolio_url=portfolio_url,
+            jd_text=job.get('description', '')
+        )
+        
+        resume_score = resume_evaluation.get('overall_score', 0)
+        
+        # Check eligibility: score must be >= 20/100
+        if resume_score < 20:
+            rejection_reason = f"Resume score ({resume_score}/100) is below the minimum threshold of 20. Your qualifications do not meet the job requirements."
+            is_eligible = False
+        else:
+            # Additional check: verify relevance through risk signals
+            risk_signals = resume_evaluation.get('risk_signals', [])
+            critical_risks = [r for r in risk_signals if 'irrelevant' in r.lower() or 'mismatch' in r.lower()]
+            
+            if len(critical_risks) > 2:
+                rejection_reason = "Your profile does not align with the job requirements. Please review the job description and apply for positions that better match your experience."
+                is_eligible = False
+            else:
+                is_eligible = True
+    
+    except Exception as e:
+        print(f"Resume scoring error: {str(e)}")
+        # If scoring fails, allow application but with 0 score
+        is_eligible = True
+        resume_score = 0
+    
+    # Reject if not eligible - DO NOT create application record
+    # This allows candidates to improve their resume and try again
+    if not is_eligible:
+        return jsonify({
+            "error": rejection_reason,
+            "resumeScore": resume_score,
+            "eligible": False,
+            "message": "Your application was not submitted. Please improve your qualifications and try again."
+        }), 400
+    
+    # Create application for eligible candidate
     application = {
         "jobId": ObjectId(job_id),
         "candidateId": ObjectId(token),
         "candidateName": f"{user.get('firstName', '')} {user.get('lastName', '')}".strip(),
         "candidateEmail": user.get('email'),
         "status": "pending",  # pending, under_review, assessment_sent, assessment_completed, rejected, accepted
-        "stage": "application_submitted",  # application_submitted, resume_reviewed, assessment_pending, assessment_completed, interview_scheduled, offer_sent
+        "stage": "resume_reviewed",  # application_submitted, resume_reviewed, assessment_pending, assessment_completed, interview_scheduled, offer_sent
         "appliedAt": datetime.now(),
+        "resumeScore": resume_score,  # Round 1 score (30% of final)
+        "metisEvaluation": resume_evaluation,
+        "evaluatedAt": datetime.now(),
+        "eligible": True,
         "profileSnapshot": {
             "firstName": user.get('firstName', ''),
             "lastName": user.get('lastName', ''),
@@ -93,7 +151,7 @@ def submit_application():
         "timeline": [{
             "event": "Application Submitted",
             "timestamp": datetime.now(),
-            "description": "Candidate submitted application"
+            "description": f"Candidate submitted application (Resume Score: {resume_score}/100)"
         }]
     }
     
@@ -122,7 +180,10 @@ def submit_application():
         "message": "Application submitted successfully",
         "applicationId": str(result.inserted_id),
         "assessmentId": str(assessment_result.inserted_id),
-        "status": "under_review"
+        "status": "under_review",
+        "resumeScore": resume_score,
+        "eligible": True,
+        "note": "Your resume has been evaluated. You are eligible for the interview round."
     }), 201
 
 @applications_bp.route('/job/<job_id>', methods=['GET'])
@@ -178,7 +239,7 @@ def get_candidate_applications(candidate_id):
 
 @applications_bp.route('/<application_id>', methods=['GET'])
 def get_application(application_id):
-    """Get a specific application"""
+    """Get a specific application with scoring details"""
     if not ObjectId.is_valid(application_id):
         return jsonify({"error": "Invalid application ID"}), 400
     
@@ -191,6 +252,24 @@ def get_application(application_id):
     application['jobId'] = str(application['jobId'])
     application['candidateId'] = str(application['candidateId'])
     application['appliedAt'] = application['appliedAt'].isoformat() if application.get('appliedAt') else None
+    
+    # Add scoring breakdown if available
+    if application.get('finalScore'):
+        application['scoringBreakdown'] = {
+            'round1': {
+                'name': 'Resume Evaluation',
+                'score': application.get('resumeScore', application.get('round1Score', 0)),
+                'weight': '30%',
+                'contribution': round(application.get('resumeScore', application.get('round1Score', 0)) * 0.3, 1)
+            },
+            'round2': {
+                'name': 'Interview',
+                'score': application.get('interviewScore', application.get('round2Score', 0)),
+                'weight': '70%',
+                'contribution': round(application.get('interviewScore', application.get('round2Score', 0)) * 0.7, 1)
+            },
+            'finalScore': application.get('finalScore', 0)
+        }
     
     return jsonify(application)
 

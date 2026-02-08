@@ -269,13 +269,15 @@ def evaluate_interview_endpoint(application_id):
             candidate_name=application.get('candidateName', 'Candidate')
         )
         
-        # Get Round 1 score (METIS resume evaluation)
-        round1_score = application.get('metisScore', 0)
+        # Get Round 1 score (METIS resume evaluation) - stored during application
+        round1_score = application.get('resumeScore', application.get('metisScore', 0))
         
         # Get Round 2 score (Interview)
         round2_score = interview_eval.get('interview_score', 0)
         
         # Calculate final combined score: 30% resume + 70% interview
+        # Round 1 (Resume): 30%
+        # Round 2 (Interview): 70%
         final_score = round((round1_score * 0.3) + (round2_score * 0.7), 1)
         
         # Update application with interview evaluation and final score
@@ -358,8 +360,11 @@ def batch_evaluate_interviews(job_id):
                     candidate_name=app.get('candidateName', 'Candidate')
                 )
                 
-                round1_score = app.get('metisScore', 0)
+                # Get scores - use resumeScore first (from application), fallback to metisScore
+                round1_score = app.get('resumeScore', app.get('metisScore', 0))
                 round2_score = interview_eval.get('interview_score', 0)
+                
+                # Final score: 30% resume + 70% interview
                 final_score = round((round1_score * 0.3) + (round2_score * 0.7), 1)
                 
                 # Update application

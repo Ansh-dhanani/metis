@@ -20,6 +20,11 @@ export interface User {
   linkedinUrl?: string;
   githubUrl?: string;
   portfolioUrl?: string;
+  resume?: {
+    rawText?: string;
+    parsedData?: any;
+    uploadedAt?: string;
+  };
   createdAt: string;
 }
 
