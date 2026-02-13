@@ -11,6 +11,9 @@ import { handleError } from '@/lib/utils/error-handler';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { StatsCard } from '@/components/ui/stats-card';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import Link from 'next/link';
 import { Briefcase, ClipboardList, Users, TrendingUp, Plus } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
@@ -77,68 +80,44 @@ export default function HRDashboard() {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Welcome back, {user?.firstName}!</h1>
-          <p className="text-gray-500">Here&apos;s what&apos;s happening with your recruitment</p>
-        </div>
-        <Link href="/dashboard/jobs/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Job
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title={`Welcome back, ${user?.firstName}!`}
+        description="Here's what's happening with your recruitment"
+        action={
+          <Link href="/dashboard/jobs/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Job
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Stats Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Total Jobs
-            </CardTitle>
-            <Briefcase className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalJobs}</div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Total Jobs"
+          value={stats.totalJobs}
+          icon={Briefcase}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Active Assessments
-            </CardTitle>
-            <ClipboardList className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.activeAssessments}</div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Active Assessments"
+          value={stats.activeAssessments}
+          icon={ClipboardList}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Total Candidates
-            </CardTitle>
-            <Users className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCandidates}</div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Total Candidates"
+          value={stats.totalCandidates}
+          icon={Users}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Completed
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.completedAssessments}</div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Completed"
+          value={stats.completedAssessments}
+          icon={TrendingUp}
+        />
       </div>
 
       {/* Recent Jobs */}
@@ -155,26 +134,26 @@ export default function HRDashboard() {
         </CardHeader>
         <CardContent>
           {jobs.length === 0 ? (
-            <div className="py-8 text-center">
-              <Briefcase className="mx-auto h-12 w-12 text-gray-300" />
-              <p className="mt-4 text-gray-500">No jobs created yet</p>
-              <Link href="/dashboard/jobs/new">
-                <Button className="mt-4" variant="outline">
-                  Create Your First Job
-                </Button>
-              </Link>
-            </div>
+            <EmptyState
+              icon={Briefcase}
+              title="No jobs created yet"
+              description="Create your first job posting to start receiving applications"
+              action={{
+                label: "Create Your First Job",
+                href: "/dashboard/jobs/new"
+              }}
+            />
           ) : (
             <div className="space-y-3">
               {jobs.slice(0, 5).map((job) => (
                 <Link
                   key={job._id}
                   href={`/dashboard/jobs/${job._id}`}
-                  className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-gray-50"
+                  className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
                 >
                   <div>
                     <h3 className="font-medium">{job.title}</h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {job.skillWeights && job.skillWeights.length > 0 ? (
                         `${job.skillWeights.length} skills required`
                       ) : (
@@ -197,10 +176,11 @@ export default function HRDashboard() {
         </CardHeader>
         <CardContent>
           {assessments.length === 0 ? (
-            <div className="py-8 text-center">
-              <ClipboardList className="mx-auto h-12 w-12 text-gray-300" />
-              <p className="mt-4 text-gray-500">No assessments yet</p>
-            </div>
+            <EmptyState
+              icon={ClipboardList}
+              title="No assessments yet"
+              description="Assessments will appear here once candidates start applying to your jobs"
+            />
           ) : (
             <div className="space-y-3">
               {assessments.slice(0, 5).map((assessment) => (
@@ -210,7 +190,7 @@ export default function HRDashboard() {
                 >
                   <div>
                     <h3 className="font-medium">Assessment #{assessment._id.slice(-6)}</h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       Candidate: {assessment.candidateId}
                     </p>
                   </div>

@@ -1,234 +1,346 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
-import { 
-  Users, 
-  CheckCircle, 
-  ArrowRight, 
-  Target, 
-  BarChart3, 
-  Sparkles, 
-  Shield, 
-  Zap 
-} from 'lucide-react';
+import Link from "next/link";
+import { Logo } from "@/components/logo";
+import { useEffect } from "react";
+import DarkVeil from "@/components/DarkVeil";
+import { Button } from "@/components/ui/button";
+import ScrollVelocity from "@/components/ScrollVelocity";
+
+// Marketing Section Components
+import HeroArcSection from "@/components/marketing/HeroArcSection";
+import ComparisonSection from "@/components/marketing/ComparisonSection";
+import HighlightFeatureCard from "@/components/marketing/HighlightFeatureCard";
+import MediaFeatureCard from "@/components/marketing/MediaFeatureCard";
+import SplitFeatureSection from "@/components/marketing/SplitFeatureSection";
+import TrustStrip from "@/components/marketing/TrustStrip";
+import LanguageGrid from "@/components/marketing/LanguageGrid";
+import UseCaseSection from "@/components/marketing/UseCaseSection";
+import TestimonialFeature from "@/components/marketing/TestimonialFeature";
+import CTAArcSection from "@/components/marketing/CTAArcSection";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu";
+import { Brain, Zap, Shield, Code } from "lucide-react";
+
+function ListItem({
+  title,
+  children,
+  href,
+  icon,
+  ...props
+}: React.ComponentPropsWithoutRef<"li"> & {
+  href: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <li {...props}>
+      <NavigationMenuLink asChild>
+        <Link href={href} className="group block select-none rounded-md p-4 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+          <div className="flex items-start gap-3">
+            {icon && (
+              <div className="flex-shrink-0 mt-1">
+                <span className="text-primary">{icon}</span>
+              </div>
+            )}
+            <div className="flex-1 space-y-1">
+              <div className="text-sm font-semibold leading-tight">{title}</div>
+              {children && (
+                <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                  {children}
+                </p>
+              )}
+            </div>
+          </div>
+        </Link>
+      </NavigationMenuLink>
+    </li>
+  );
+}
 
 export default function LandingPage() {
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+  }, []);
+
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b px-5 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6" />
-            <span className="text-xl font-bold">Metis</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Button variant="outline" asChild>
-              <Link href="/login">Login</Link>
+    <div className="relative bg-background text-foreground overflow-hidden">
+      <div
+        className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none overflow-hidden flex items-start justify-center"
+        style={{
+          height: "100vh",
+          maxHeight: "100vh",
+          width: "100%",
+          maxWidth: "100%",
+        }}
+      >
+        <DarkVeil
+          hueShift={0}
+          noiseIntensity={0}
+          scanlineIntensity={0}
+          speed={0.5}
+          scanlineFrequency={0}
+          warpAmount={0}
+          resolutionScale={1.1}
+        />
+      </div>
+
+      {/* Simplified Navigation */}
+      <nav className="fixed top-5 left-5 right-5 z-50 flex items-center justify-between px-8 py-4 bg-background/80 backdrop-blur-md border border-border/40 rounded-2xl">
+        <Logo size="md" showText={true} />
+
+        <NavigationMenu className="hidden md:flex">
+          <NavigationMenuList>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Product</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid gap-2 p-4 w-[400px] md:w-[500px] md:grid-cols-2">
+                  <ListItem
+                    href="#features"
+                    title="AI Interviews"
+                    icon={<Brain className="h-4 w-4" />}
+                  >
+                    Conduct intelligent interviews with advanced AI models.
+                  </ListItem>
+                  <ListItem
+                    href="#showcase"
+                    title="Real-time Analysis"
+                    icon={<Zap className="h-4 w-4" />}
+                  >
+                    Get instant feedback and insights during conversations.
+                  </ListItem>
+                  <ListItem
+                    href="#integrations"
+                    title="Secure & Private"
+                    icon={<Shield className="h-4 w-4" />}
+                  >
+                    Enterprise-grade security with SOC 2 compliance.
+                  </ListItem>
+                  <ListItem
+                    href="#api"
+                    title="Developer API"
+                    icon={<Code className="h-4 w-4" />}
+                  >
+                    Integrate with our powerful RESTful API.
+                  </ListItem>
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>Resources</NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <ul className="grid gap-2 p-4 w-[300px]">
+                  <ListItem href="#docs" title="Documentation">
+                    Complete guides and API references.
+                  </ListItem>
+                  <ListItem href="#blog" title="Blog">
+                    Latest updates and best practices.
+                  </ListItem>
+                  <ListItem href="#support" title="Support">
+                    Get help from our expert team.
+                  </ListItem>
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
+              <Link href="#pricing" legacyBehavior passHref>
+                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                  Pricing
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+
+            <NavigationMenuItem>
+              <Link href="#about" legacyBehavior passHref>
+                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                  About
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
+
+        <div className="flex items-center gap-4">
+          <Link href="/login" className="hidden sm:block">
+            <Button variant="ghost" className="text-sm">
+              Sign In
             </Button>
-            <Button asChild>
-              <Link href="/register">Get Started</Link>
+          </Link>
+          <Link href="/login">
+            <Button className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-6 py-5 text-md font-medium">
+              Get Started
             </Button>
-          </div>
+          </Link>
         </div>
-      </header>
+      </nav>
 
-      {/* Hero Section */}
-      <section className="container flex flex-col items-center gap-8 py-24 md:py-32">
-        <Badge variant="secondary" className="gap-1">
-          <Sparkles className="h-3 w-3" />
-          AI-Powered Recruitment
-        </Badge>
-        
-        <div className="flex flex-col items-center gap-4 text-center">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-            Smart Hiring Made Simple
-          </h1>
-          <p className="max-w-[42rem] text-lg text-muted-foreground sm:text-xl">
-            Streamline your recruitment process with AI-powered candidate ranking, 
-            automated assessments, and intelligent matching.
-          </p>
-        </div>
-        
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <Button size="lg" asChild>
-              <Link href="/login">
-              Start Hiring
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-          <Button size="lg" variant="outline" asChild>
-            <Link href="/login">I'm Looking for Jobs</Link>
-          </Button>
-        </div>
-      </section>
+      {/* Main Content */}
+      <main className="relative z-10 ">
+        <HeroArcSection />
+        <ComparisonSection />
+        <HighlightFeatureCard />
+        <MediaFeatureCard />
+        <SplitFeatureSection />
+        <TrustStrip />
+        <LanguageGrid />
+        <UseCaseSection />
+        <TestimonialFeature />
+        <CTAArcSection />
 
-      {/* Features Section */}
-      <section className="border-t bg-muted/50">
-        <div className="container py-24">
-          <div className="mb-16 flex flex-col items-center gap-4 text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-              Powerful Features for Modern Recruitment
-            </h2>
-            <p className="max-w-[42rem] text-lg text-muted-foreground">
-              Everything you need to find the perfect candidates
-            </p>
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 px-5">
-            <Card>
-              <CardHeader>
-                <Target className="mb-2 h-10 w-10" />
-                <CardTitle>AI Candidate Ranking</CardTitle>
-                <CardDescription>
-                  Automatically rank candidates based on skills, experience, and job requirements
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <BarChart3 className="mb-2 h-10 w-10" />
-                <CardTitle>Analytics Dashboard</CardTitle>
-                <CardDescription>
-                  Track applications, view candidate analytics, and make data-driven decisions
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <Users className="mb-2 h-10 w-10" />
-                <CardTitle>Smart Matching</CardTitle>
-                <CardDescription>
-                  Match candidates with jobs using intelligent skill-based algorithms
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CheckCircle className="mb-2 h-10 w-10" />
-                <CardTitle>Automated Assessments</CardTitle>
-                <CardDescription>
-                  Create and manage technical assessments to evaluate candidate skills
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <Zap className="mb-2 h-10 w-10" />
-                <CardTitle>Quick Applications</CardTitle>
-                <CardDescription>
-                  Candidates can apply with resume upload and auto-parsed profile data
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <Shield className="mb-2 h-10 w-10" />
-                <CardTitle>Secure & Reliable</CardTitle>
-                <CardDescription>
-                  Enterprise-grade security to protect your sensitive recruitment data
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="container py-24">
-        <div className="mb-16 flex flex-col items-center gap-4 text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-            How It Works
-          </h2>
-          <p className="max-w-[42rem] text-lg text-muted-foreground">
-            Get started in three simple steps
-          </p>
-        </div>
-
-        <div className="grid gap-8 md:grid-cols-3 px-5">
-          <Card>
-            <CardHeader>
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                1
-              </div>
-              <CardTitle>Post Your Job</CardTitle>
-              <CardDescription>
-                Create a job posting with required skills and let AI help match candidates
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                2
-              </div>
-              <CardTitle>Review Applications</CardTitle>
-              <CardDescription>
-                Get AI-powered rankings and insights about each candidate
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                3
-              </div>
-              <CardTitle>Hire the Best</CardTitle>
-              <CardDescription>
-                Select top candidates and manage the entire hiring process in one place
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="border-t">
-        <div className="container py-24 px-5">
-          <Card className="bg-primary text-primary-foreground">
-            <CardContent className="flex flex-col items-center gap-6 p-12 text-center">
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-                Ready to Transform Your Hiring?
-              </h2>
-              <p className="max-w-[42rem] text-lg opacity-90">
-                Join companies using Metis to find exceptional talent faster
-              </p>
-              <div className="flex flex-col gap-4 sm:flex-row">
-                <Button size="lg" variant="secondary" asChild>
-                  <Link href="/signup">
-                    Start Free Trial
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" className="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary" asChild>
-                  <Link href="/signin">Sign In</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+        {/* Trusted By Section */}
+        <section className="py-1bg-muted/20  overflow-hidden">
+          {" "}
+          <div className="space-y-4">
+            {" "}
+            <ScrollVelocity
+              texts={["AI-POWERED • INNOVATIVE • "]}
+              velocity={50}
+              className="text-muted-foreground/40"
+            />{" "}
+            <ScrollVelocity
+              texts={["EFFICIENT • INTELLIGENT • "]}
+              velocity={-50}
+              className="text-muted-foreground/40"
+            />{" "}
+          </div>{" "}
+        </section>
+      </main>
 
       {/* Footer */}
-      <footer className="border-t">
-        <div className="container flex flex-col items-center justify-between gap-4 py-8 md:flex-row">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
-            <span className="font-semibold">Metis</span>
+      <footer className="relative z-10 border-t border-border/40 py-12 mt-24">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <Logo size="md" showText={true} />
+              <p className="text-sm text-muted-foreground mt-4">
+                The future of AI-powered interviews.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-4">Product</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <Link
+                    href="#"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Features
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="#"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Pricing
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="#"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Use Cases
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-4">Company</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <Link
+                    href="#"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="#"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Blog
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="#"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Careers
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-4">Legal</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <Link
+                    href="#"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Privacy
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="#"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Terms
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="#"
+                    className="hover:text-foreground transition-colors"
+                  >
+                    Security
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            © 2026 Metis. All rights reserved.
-          </p>
+
+          <div className="mt-12 pt-8 border-t border-border/40 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-muted-foreground">
+              © 2024 Metis. All rights reserved.
+            </p>
+            <div className="flex gap-6 text-sm text-muted-foreground">
+              <Link
+                href="#"
+                className="hover:text-foreground transition-colors"
+              >
+                Twitter
+              </Link>
+              <Link
+                href="#"
+                className="hover:text-foreground transition-colors"
+              >
+                GitHub
+              </Link>
+              <Link
+                href="#"
+                className="hover:text-foreground transition-colors"
+              >
+                Discord
+              </Link>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

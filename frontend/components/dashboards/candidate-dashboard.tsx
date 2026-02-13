@@ -11,6 +11,9 @@ import { handleError } from '@/lib/utils/error-handler';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { StatsCard } from '@/components/ui/stats-card';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import Link from 'next/link';
 import { Briefcase, CheckCircle, Clock, Award, TrendingUp } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
@@ -89,60 +92,36 @@ export default function CandidateDashboard() {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div>
-        <h1 className="text-3xl font-bold">Welcome, {user?.firstName}!</h1>
-        <p className="text-gray-500">Track your job applications and progress</p>
-      </div>
+      <PageHeader
+        title={`Welcome, ${user?.firstName}!`}
+        description="Track your job applications and progress"
+      />
 
       {/* Stats Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Total Applications
-            </CardTitle>
-            <Briefcase className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Total Applications"
+          value={stats.total}
+          icon={Briefcase}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Pending
-            </CardTitle>
-            <Clock className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.pending}</div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Pending"
+          value={stats.pending}
+          icon={Clock}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Under Review
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.underReview}</div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Under Review"
+          value={stats.underReview}
+          icon={TrendingUp}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Accepted
-            </CardTitle>
-            <CheckCircle className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.accepted}</div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Accepted"
+          value={stats.accepted}
+          icon={CheckCircle}
+        />
       </div>
 
       {/* Applications List */}
@@ -156,13 +135,15 @@ export default function CandidateDashboard() {
               <Spinner className="h-6 w-6" />
             </div>
           ) : applications.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>You haven&apos;t applied to any jobs yet.</p>
-              <Link href="/dashboard/browse-jobs">
-                <Button className="mt-4">Browse Jobs</Button>
-              </Link>
-            </div>
+            <EmptyState
+              icon={Briefcase}
+              title="You haven't applied to any jobs yet"
+              description="Start browsing available jobs and submit your applications to track them here"
+              action={{
+                label: "Browse Jobs",
+                href: "/dashboard/browse-jobs"
+              }}
+            />
           ) : (
             <div className="space-y-4">
               {applications.map((app) => {
@@ -178,7 +159,7 @@ export default function CandidateDashboard() {
                           {job?.title || 'Loading...'}
                         </h3>
                         {job && (
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             {job.company && `${job.company} • `}
                             {job.location} • {job.type}
                           </p>
@@ -204,7 +185,7 @@ export default function CandidateDashboard() {
                           )}
                         </div>
                       </div>
-                      <div className="text-right text-sm text-gray-500">
+                      <div className="text-right text-sm text-muted-foreground">
                         <p>Applied {formatDate(app.appliedAt || app.createdAt)}</p>
                       </div>
                     </div>

@@ -4,20 +4,25 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/auth-context';
 import { authService } from '@/lib/api/services';
 import { getErrorMessage } from '@/lib/utils/error-handler';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FormField } from '@/components/ui/form-field';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertCircle } from 'lucide-react';
 
 import type { UserRole } from '@/lib/api/types';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -31,6 +36,31 @@ export default function RegisterPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, authLoading, router]);
+
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/50">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
+            <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render register form if user is already logged in
+  if (user) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +87,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-8">
+    <div className="flex min-h-screen items-center justify-center bg-muted/50 px-4 py-8">
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Create an Account</CardTitle>
@@ -68,14 +98,14 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {error && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
-                {error}
-              </div>
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name *</Label>
+              <FormField label="First Name" required>
                 <Input
                   id="firstName"
                   placeholder="John"
@@ -83,13 +113,11 @@ export default function RegisterPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, firstName: e.target.value })
                   }
-                  required
                   disabled={isLoading}
                 />
-              </div>
+              </FormField>
 
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name *</Label>
+              <FormField label="Last Name" required>
                 <Input
                   id="lastName"
                   placeholder="Doe"
@@ -97,14 +125,12 @@ export default function RegisterPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, lastName: e.target.value })
                   }
-                  required
                   disabled={isLoading}
                 />
-              </div>
+              </FormField>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
+            <FormField label="Email" required>
               <Input
                 id="email"
                 type="email"
@@ -113,30 +139,30 @@ export default function RegisterPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
-                required
                 disabled={isLoading}
               />
-            </div>
+            </FormField>
 
-            <div className="space-y-2">
-              <Label htmlFor="role">I am a *</Label>
-              <select
-                id="role"
+            <FormField label="I am a" required>
+              <Select
                 value={formData.role}
-                onChange={(e) =>
-                  setFormData({ ...formData, role: e.target.value as UserRole })
+                onValueChange={(value) =>
+                  setFormData({ ...formData, role: value as UserRole })
                 }
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 disabled={isLoading}
               >
-                <option value="candidate">Candidate</option>
-                <option value="hr">HR / Recruiter</option>
-              </select>
-            </div>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="candidate">Candidate</SelectItem>
+                  <SelectItem value="hr">HR / Recruiter</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormField>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
+              <FormField label="Password" required>
                 <Input
                   id="password"
                   type="password"
@@ -145,13 +171,11 @@ export default function RegisterPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
                   }
-                  required
                   disabled={isLoading}
                 />
-              </div>
+              </FormField>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password *</Label>
+              <FormField label="Confirm Password" required>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -160,14 +184,12 @@ export default function RegisterPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, confirmPassword: e.target.value })
                   }
-                  required
                   disabled={isLoading}
                 />
-              </div>
+              </FormField>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="linkedinUrl">LinkedIn URL</Label>
+            <FormField label="LinkedIn URL">
               <Input
                 id="linkedinUrl"
                 type="url"
@@ -178,11 +200,10 @@ export default function RegisterPage() {
                 }
                 disabled={isLoading}
               />
-            </div>
+            </FormField>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="githubUrl">GitHub URL</Label>
+              <FormField label="GitHub URL">
                 <Input
                   id="githubUrl"
                   type="url"
@@ -193,10 +214,9 @@ export default function RegisterPage() {
                   }
                   disabled={isLoading}
                 />
-              </div>
+              </FormField>
 
-              <div className="space-y-2">
-                <Label htmlFor="portfolioUrl">Portfolio URL</Label>
+              <FormField label="Portfolio URL">
                 <Input
                   id="portfolioUrl"
                   type="url"
@@ -207,7 +227,7 @@ export default function RegisterPage() {
                   }
                   disabled={isLoading}
                 />
-              </div>
+              </FormField>
             </div>
           </CardContent>
 
@@ -216,7 +236,7 @@ export default function RegisterPage() {
               {isLoading ? 'Creating Account...' : 'Create Account'}
             </Button>
             
-            <p className="text-center text-sm text-gray-600">
+            <p className="text-center text-sm text-muted-foreground">
               Already have an account?{' '}
               <Link href="/login" className="text-primary hover:underline">
                 Sign In

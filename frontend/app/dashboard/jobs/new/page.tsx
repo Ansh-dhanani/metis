@@ -21,6 +21,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Spinner } from '@/components/ui/spinner';
 import { ArrowLeft, Plus, Trash2, Calendar } from 'lucide-react';
 import Link from 'next/link';
+import { PageHeader } from '@/components/ui/page-header';
+import { FormField } from '@/components/ui/form-field';
+import { Alert } from '@/components/ui/alert';
 
 export default function NewJobPage() {
   const router = useRouter();
@@ -93,19 +96,16 @@ export default function NewJobPage() {
     <ProtectedRoute requiredRole="hr">
       <DashboardLayout>
         <div className="mx-auto max-w-4xl space-y-6">
-          {/* Header */}
           <div className="flex items-center gap-4">
             <Link href="/dashboard/jobs">
               <Button variant="outline" size="icon">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
-            <div>
-              <h1 className="text-3xl font-bold">Create New Job</h1>
-              <p className="text-gray-500">
-                Add a job description to start the AI-powered assessment
-              </p>
-            </div>
+            <PageHeader
+              title="Create New Job"
+              description="Add a job description to start the AI-powered assessment"
+            />
           </div>
 
           {/* Form */}
@@ -119,9 +119,9 @@ export default function NewJobPage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 {error && (
-                  <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
+                  <Alert variant="destructive">
                     {error}
-                  </div>
+                  </Alert>
                 )}
 
                 <div className="space-y-2">

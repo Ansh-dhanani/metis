@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { jobsService, applicationsService } from '@/lib/api/services';
 import { useAuth } from '@/contexts/auth-context';
 import { handleError } from '@/lib/utils/error-handler';
@@ -96,12 +98,10 @@ export default function BrowseJobsPage() {
       <DashboardLayout>
         <div className="space-y-6">
           {/* Header */}
-          <div>
-            <h1 className="text-3xl font-bold">Browse Jobs</h1>
-            <p className="text-muted-foreground">
-              Find and apply for your dream job
-            </p>
-          </div>
+          <PageHeader
+            title="Browse Jobs"
+            description="Find and apply for your dream job"
+          />
 
           {/* Search and Filters */}
           <Card>
@@ -182,16 +182,15 @@ export default function BrowseJobsPage() {
               </div>
             </div>
           ) : filteredJobs.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Briefcase className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
-                  {searchTerm || filterType !== 'all' || filterLocation !== 'all'
-                    ? 'No jobs found matching your filters'
-                    : 'No jobs available at the moment'}
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Briefcase}
+              title={searchTerm || filterType !== 'all' || filterLocation !== 'all'
+                ? 'No jobs found matching your filters'
+                : 'No jobs available at the moment'}
+              description={searchTerm || filterType !== 'all' || filterLocation !== 'all'
+                ? 'Try adjusting your search criteria or filters'
+                : 'Check back later for new opportunities'}
+            />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredJobs.map((job) => (

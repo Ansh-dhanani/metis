@@ -15,6 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import Link from 'next/link';
 import { Plus, Briefcase, ExternalLink, Trash2 } from 'lucide-react';
 import type { Job } from '@/lib/api/types';
@@ -90,38 +92,30 @@ export default function JobsPage() {
       <DashboardLayout>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Jobs</h1>
-              <p className="text-gray-500">Manage your job postings and assessments</p>
-            </div>
-            <Link href="/dashboard/jobs/new">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Job
-              </Button>
-            </Link>
-          </div>
+          <PageHeader
+            title="Jobs"
+            description="Manage your job postings and assessments"
+            action={
+              <Link href="/dashboard/jobs/new">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Job
+                </Button>
+              </Link>
+            }
+          />
 
           {/* Jobs Tabs */}
           {jobs.length === 0 ? (
-            <Card>
-              <CardContent className="py-12">
-                <div className="text-center">
-                  <Briefcase className="mx-auto h-12 w-12 text-gray-300" />
-                  <h3 className="mt-4 text-lg font-medium">No jobs yet</h3>
-                  <p className="mt-2 text-gray-500">
-                    Create your first job to start assessing candidates
-                  </p>
-                  <Link href="/dashboard/jobs/new">
-                    <Button className="mt-4">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create Your First Job
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Briefcase}
+              title="No jobs yet"
+              description="Create your first job to start assessing candidates"
+              action={{
+                label: "Create Your First Job",
+                href: "/dashboard/jobs/new"
+              }}
+            />
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList>
@@ -135,13 +129,11 @@ export default function JobsPage() {
               
               <TabsContent value="open" className="mt-6">
                 {openJobs.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12">
-                      <div className="text-center text-gray-500">
-                        <p>No open jobs</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <EmptyState
+                    icon={Briefcase}
+                    title="No open jobs"
+                    description="All your jobs are currently closed or filled"
+                  />
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {openJobs.map((job) => (
@@ -153,7 +145,7 @@ export default function JobsPage() {
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-muted-foreground">
                             {job.location} • Created {formatDate(job.createdAt)}
                           </div>
 
@@ -204,13 +196,11 @@ export default function JobsPage() {
 
               <TabsContent value="closed" className="mt-6">
                 {closedJobs.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12">
-                      <div className="text-center text-gray-500">
-                        <p>No closed jobs</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <EmptyState
+                    icon={Briefcase}
+                    title="No closed jobs"
+                    description="Jobs that are filled or closed will appear here"
+                  />
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {closedJobs.map((job) => (
@@ -222,7 +212,7 @@ export default function JobsPage() {
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-muted-foreground">
                             {job.location} • Created {formatDate(job.createdAt)}
                           </div>
 

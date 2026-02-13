@@ -5,6 +5,9 @@
 
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { ProtectedRoute } from '@/components/protected-route';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { useAuth } from '@/contexts/auth-context';
@@ -13,6 +16,22 @@ import CandidateDashboard from '@/components/dashboards/candidate-dashboard';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check if OAuth user needs to select role
+    if (session?.user?.needsRoleSelection) {
+      const searchParams = new URLSearchParams({
+        email: session.user.email || "",
+        name: session.user.name || "",
+        provider: session.user.provider || "",
+        providerId: session.user.providerId || "",
+        image: session.user.image || ""
+      });
+      router.push(`/auth/select-role?${searchParams.toString()}`);
+    }
+  }, [session, router]);
 
   return (
     <ProtectedRoute>

@@ -14,6 +14,7 @@ import { handleError } from '@/lib/utils/error-handler';
 import { Loader2, Edit, Save, X, Plus, Trash2, Sparkles, Upload, FileText } from "lucide-react";
 import { Spinner } from '@/components/ui/spinner';
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface Experience {
   company: string;
@@ -386,35 +387,35 @@ export default function ProfilePage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Profile</h1>
-            <p className="text-muted-foreground">Manage your personal information and credentials</p>
-          </div>
-          <div className="flex gap-2">
-            {isEditing ? (
-              <>
-                <Button variant="outline" onClick={handleCancel} disabled={saving}>
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel
-                </Button>
-                <Button onClick={handleSave} disabled={saving}>
-                  {saving ? (
-                    <Spinner className="h-4 w-4 mr-2" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  Save Changes
-                </Button>
-              </>
-            ) : (
+        <PageHeader
+          title="Profile"
+          description="Manage your personal information and credentials"
+          action={
+            <div className="flex gap-2">
+              {isEditing ? (
+                <>
+                  <Button variant="outline" onClick={handleCancel} disabled={saving}>
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSave} disabled={saving}>
+                    {saving ? (
+                      <Spinner className="h-4 w-4 mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Save Changes
+                  </Button>
+                </>
+              ) : (
               <Button onClick={() => setIsEditing(true)}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Profile
               </Button>
             )}
-          </div>
-        </div>
+            </div>
+          }
+        />
 
         {/* AI Resume Parser Card */}
         {profileData.role === 'candidate' && (

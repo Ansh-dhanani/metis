@@ -29,6 +29,9 @@ def register():
         "linkedinUrl": data.get("linkedinUrl", ""),
         "githubUrl": data.get("githubUrl", ""),
         "portfolioUrl": data.get("portfolioUrl", ""),
+        "oauthProvider": None,  # For consistency with OAuth users
+        "oauthProviderId": None,
+        "image": None,
         "createdAt": datetime.now(),
         # Candidate specific fields
         "resume": None,
@@ -335,3 +338,147 @@ def update_profile(user_id):
          return jsonify({"error": "User not found"}), 404
          
     return jsonify({"message": "Profile updated successfully"})
+
+@users_bp.route('/oauth-login', methods=['POST'])
+def oauth_login():
+    """Handle OAuth login/registration from Google, LinkedIn, etc."""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        email = data.get('email')
+        name = data.get('name')
+        provider = data.get('provider')  # 'google' or 'linkedin'
+        provider_id = data.get('providerId')
+        image = data.get('image')
+        
+        if not email or not provider:
+            return jsonify({"error": "Email and provider are required"}), 400
+        
+        # Check if user exists with this email
+        user = db.users.find_one({"email": email})
+        
+        if user:
+            # Update OAuth info if not already set
+            update_data = {}
+            if not user.get('oauthProvider'):
+                update_data['oauthProvider'] = provider
+                update_data['oauthProviderId'] = provider_id
+            if image and not user.get('image'):
+                update_data['image'] = image
+            
+            if update_data:
+                db.users.update_one(
+                    {"_id": user['_id']},
+                    {"$set": update_data}
+                )
+            
+            return jsonify({
+                "user": {
+                    "id": str(user['_id']),
+                    "email": user['email'],
+                    "name": f"{user.get('firstName', '')} {user.get('lastName', '')}".strip() or name,
+                    "role": user['role'],
+                    "image": user.get('image', image)
+                },
+                "message": "Login successful"
+            }), 200
+        
+        else:
+            # User doesn't exist - they need to register first
+            return jsonify({
+                "error": "User not found. Please complete registration.",
+                "needsRegistration": True
+            }), 404
+    
+    except Exception as e:
+        print(f"[OAUTH-LOGIN] Error: {str(e)}")
+        return jsonify({"error": "OAuth login failed"}), 500
+
+@users_bp.route('/check-email', methods=['POST'])
+def check_email():
+    """Check if an email exists in the database"""
+    try:
+        data = request.json
+        email = data.get('email')
+        
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+        
+        user = db.users.find_one({"email": email})
+        
+        return jsonify({"exists": user is not None}), 200
+    
+    except Exception as e:
+        print(f"[CHECK-EMAIL] Error: {str(e)}")
+        return jsonify({"error": "Failed to check email"}), 500
+
+@users_bp.route('/oauth-register', methods=['POST'])
+def oauth_register():
+    """Register a new user from OAuth with role selection"""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        email = data.get('email')
+        name = data.get('name')
+        provider = data.get('provider')
+        provider_id = data.get('providerId')
+        image = data.get('image')
+        role = data.get('role')  # 'hr' or 'candidate'
+        
+        if not email or not provider or not role:
+            return jsonify({"error": "Email, provider, and role are required"}), 400
+        
+        if role not in ['hr', 'candidate']:
+            return jsonify({"error": "Invalid role. Must be 'hr' or 'candidate'"}), 400
+        
+        # Check if user already exists
+        existing_user = db.users.find_one({"email": email})
+        if existing_user:
+            return jsonify({"error": "User already exists"}), 400
+        
+        # Split name into first/last
+        name_parts = name.split(' ', 1) if name else ['', '']
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        user_doc = {
+            "email": email,
+            "password": None,  # OAuth users don't have passwords
+            "firstName": first_name,
+            "lastName": last_name,
+            "role": role,
+            "oauthProvider": provider,
+            "oauthProviderId": provider_id,
+            "image": image,
+            "linkedinUrl": "",
+            "githubUrl": "",
+            "portfolioUrl": "",
+            "createdAt": datetime.now(),
+            "resume": None,
+            "credibilityScore": {
+                "score": 100,
+                "incidents": []
+            } if role == 'candidate' else None
+        }
+        
+        result = db.users.insert_one(user_doc)
+        
+        return jsonify({
+            "user": {
+                "id": str(result.inserted_id),
+                "email": email,
+                "name": name,
+                "role": role,
+                "image": image
+            },
+            "message": "User registered successfully"
+        }), 201
+    
+    except Exception as e:
+        print(f"[OAUTH-REGISTER] Error: {str(e)}")
+        return jsonify({"error": "OAuth registration failed"}), 500
+

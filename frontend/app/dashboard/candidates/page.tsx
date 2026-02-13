@@ -14,6 +14,8 @@ import { rankingsService } from '@/lib/api/services';
 import { Search, Mail, Award } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import type { CandidateRanking } from '@/lib/api/types';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function CandidatesPage() {
   const [rankings, setRankings] = useState<CandidateRanking[]>([]);
@@ -42,22 +44,19 @@ export default function CandidatesPage() {
   );
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'bg-green-100 text-green-800 border-green-200';
-    if (score >= 60) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    return 'bg-red-100 text-red-800 border-red-200';
+    if (score >= 80) return 'bg-success/10 text-success border-success/20';
+    if (score >= 60) return 'bg-warning/10 text-warning border-warning/20';
+    return 'bg-destructive/10 text-destructive border-destructive/20';
   };
 
   return (
     <ProtectedRoute requiredRole="hr">
       <DashboardLayout>
         <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Candidates</h1>
-          <p className="text-muted-foreground">
-            View and manage all candidates who applied
-          </p>
-        </div>
+        <PageHeader
+          title="Candidates"
+          description="View and manage all candidates who applied"
+        />
 
         {/* Search */}
         <div className="flex items-center gap-4">
@@ -84,13 +83,11 @@ export default function CandidatesPage() {
             </div>
           </div>
         ) : filteredCandidates.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <p className="text-muted-foreground">
-                {searchTerm ? 'No candidates found matching your search' : 'No candidates yet'}
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Search}
+            title={searchTerm ? 'No candidates found' : 'No candidates yet'}
+            description={searchTerm ? 'Try adjusting your search criteria' : 'Candidates will appear here once they apply'}
+          />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredCandidates.map((candidate) => (

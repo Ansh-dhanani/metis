@@ -6,6 +6,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { authService } from '@/lib/api/services';
 import type { User } from '@/lib/api/types';
 
@@ -23,10 +24,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     // Check if user is authenticated on mount
     const initAuth = async () => {
+      // First check for NextAuth session (OAuth users)
+      if (status === 'loading') {
+        return; // Wait for session to load
+      }
+
+      if (session?.user) {
+        // User is authenticated via OAuth
+        setUser({
+          userId: session.user.id || '',
+          email: session.user.email || '',
+          firstName: session.user.name?.split(' ')[0] || '',
+          lastName: session.user.name?.split(' ').slice(1).join(' ') || '',
+          role: (session.user.role as 'hr' | 'candidate') || 'candidate',
+          createdAt: new Date().toISOString(),
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Fall back to localStorage auth (email/password users)
       const currentUser = authService.getCurrentUser();
       if (currentUser) {
         try {
@@ -46,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     initAuth();
-  }, []);
+  }, [session, status]);
 
   const login = async (email: string, password: string) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

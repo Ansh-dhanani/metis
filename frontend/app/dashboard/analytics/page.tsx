@@ -16,6 +16,8 @@ import { assessmentsService, rankingsService } from '@/lib/api/services';
 import { Award, TrendingUp, Users, Download, ClipboardList, BarChart3, PieChart } from 'lucide-react';
 import { handleError } from '@/lib/utils/error-handler';
 import type { Assessment, CandidateRanking } from '@/lib/api/types';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatsCard } from '@/components/ui/stats-card';
 
 export default function AnalyticsPage() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
@@ -61,9 +63,9 @@ export default function AnalyticsPage() {
   };
 
   const getScoreBadge = (score: number) => {
-    if (score >= 80) return <Badge className="bg-green-100 text-green-800">Excellent</Badge>;
-    if (score >= 60) return <Badge className="bg-yellow-100 text-yellow-800">Good</Badge>;
-    return <Badge className="bg-red-100 text-red-800">Needs Improvement</Badge>;
+    if (score >= 80) return <Badge variant="success">Excellent</Badge>;
+    if (score >= 60) return <Badge variant="warning">Good</Badge>;
+    return <Badge variant="destructive">Needs Improvement</Badge>;
   };
 
   // Calculate score distribution
@@ -88,75 +90,42 @@ export default function AnalyticsPage() {
     <ProtectedRoute requiredRole="hr">
       <DashboardLayout>
         <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Analytics</h1>
-            <p className="text-muted-foreground">
-              View candidate performance and scores
-            </p>
-          </div>
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export Report
-          </Button>
-        </div>
+        <PageHeader
+          title="Analytics"
+          description="View candidate performance and scores"
+          action={
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Export Report
+            </Button>
+          }
+        />
 
-        {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Assessments</CardTitle>
-              <ClipboardList className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{assessments.length}</div>
-              <p className="text-xs text-muted-foreground">
-                {completedAssessments.length} completed
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Average Score</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{averageScore.toFixed(1)}%</div>
-              <p className="text-xs text-muted-foreground">
-                Across all candidates
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Candidates</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{rankings.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Unique candidates
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Top Performers</CardTitle>
-              <Award className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {rankings.filter(r => r.overallScore >= 80).length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Score ≥ 80%
-              </p>
-            </CardContent>
-          </Card>
+          <StatsCard
+            title="Total Assessments"
+            value={assessments.length}
+            icon={ClipboardList}
+            description={`${completedAssessments.length} completed`}
+          />
+          <StatsCard
+            title="Average Score"
+            value={`${averageScore.toFixed(1)}%`}
+            icon={TrendingUp}
+            description="Across all candidates"
+          />
+          <StatsCard
+            title="Total Candidates"
+            value={rankings.length}
+            icon={Users}
+            description="Unique candidates"
+          />
+          <StatsCard
+            title="Top Performers"
+            value={rankings.filter(r => r.overallScore >= 80).length}
+            icon={Award}
+            description="Score ≥ 80%"
+          />
         </div>
 
         {/* Tabs */}
