@@ -571,7 +571,6 @@ metis/
 │   ├── lib/               # Utility libraries and API clients
 │   ├── types/             # TypeScript type definitions
 │   └── package.json       # Node.js dependencies
-├── model/                 # AI model files and training data
 ├── docs/                  # Documentation files
 ├── docker-compose.yml     # Docker orchestration
 ├── Dockerfile            # Container configuration
