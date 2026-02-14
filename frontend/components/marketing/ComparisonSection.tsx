@@ -1,11 +1,19 @@
 import { Button } from "../ui/button";
 import FeatureGrid from "./FeatureGrid";
 import { Gauge, Headphones, Flame, Activity } from "lucide-react";
+import { Separator } from "../ui/separator";
 
 export default function ComparisonSection() {
   return (
     <section className="py-24 relative">
-      <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-10 px-4">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="flex flex-row items-center mb-4">
+          <h2 className="text-sm font-semibold tracking-widest px-4 flex items-center gap-2 whitespace-nowrap">
+            Why Choose Us
+          </h2>
+          <Separator className="flex-1" />
+        </div>
+        <div className="grid lg:grid-cols-2 gap-10">
         {/* Large Visual Card */}
         <div 
           className="rounded-3xl bg-gradient-to-br from-primary/20 via-primary/10 to-purple-500/10 h-[580px] border border-primary/20 flex flex-col justify-between bg-cover bg-top bg-no-repeat"
@@ -43,6 +51,7 @@ export default function ComparisonSection() {
             },
           ]}
         />
+      </div>
       </div>
     </section>
   );

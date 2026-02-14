@@ -16,20 +16,35 @@ export const authService = {
    * Register a new user
    */
   register: async (data: RegisterRequest): Promise<RegisterResponse> => {
-    return api.post<RegisterResponse>('/api/users/register', data);
-  },
-
-  /**
-   * Login user
-   */
-  login: async (data: LoginRequest): Promise<LoginResponse> => {
-    const response = await api.post<LoginResponse>('/api/users/login', data);
+    console.log('[AuthService] Registering user:', { email: data.email, role: data.role });
+    const response = await api.post<RegisterResponse>('/api/users/register', data);
+    console.log('[AuthService] Registration response:', response);
     
     // Store auth token if provided
     if (response.token && typeof window !== 'undefined') {
       localStorage.setItem('authToken', response.token);
       localStorage.setItem('userId', response.userId);
       localStorage.setItem('userRole', response.role);
+      console.log('[AuthService] Stored auth tokens in localStorage');
+    }
+    
+    return response;
+  },
+
+  /**
+   * Login user
+   */
+  login: async (data: LoginRequest): Promise<LoginResponse> => {
+    console.log('[AuthService] Logging in user:', data.email);
+    const response = await api.post<LoginResponse>('/api/users/login', data);
+    console.log('[AuthService] Login response:', response);
+    
+    // Store auth token if provided
+    if (response.token && typeof window !== 'undefined') {
+      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('userId', response.userId);
+      localStorage.setItem('userRole', response.role);
+      console.log('[AuthService] Stored auth tokens in localStorage');
     }
     
     return response;

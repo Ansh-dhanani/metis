@@ -35,7 +35,7 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-lg p-0 shrink-0">
           <Avatar className="h-9 w-9 rounded-lg">
-            <AvatarImage src={user.email ? `https://api.dicebear.com/7.x/initials/svg?seed=${user.firstName} ${user.lastName}` : undefined} alt={user.firstName} />
+            <AvatarImage src={user.image || (user.email ? `https://api.dicebear.com/7.x/initials/svg?seed=${user.firstName} ${user.lastName}` : undefined)} alt={user.firstName} />
             <AvatarFallback className="rounded-lg bg-primary text-primary-foreground text-sm font-medium">
               {initials}
             </AvatarFallback>
@@ -46,7 +46,7 @@ export function UserNav() {
         <DropdownMenuLabel className="p-0 font-normal">
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
             <Avatar className="h-8 w-8 rounded-lg">
-              <AvatarImage src={user.email ? `https://api.dicebear.com/7.x/initials/svg?seed=${user.firstName} ${user.lastName}` : undefined} alt={user.firstName} />
+              <AvatarImage src={user.image || (user.email ? `https://api.dicebear.com/7.x/initials/svg?seed=${user.firstName} ${user.lastName}` : undefined)} alt={user.firstName} />
               <AvatarFallback className="rounded-lg bg-primary text-primary-foreground">
                 {initials}
               </AvatarFallback>

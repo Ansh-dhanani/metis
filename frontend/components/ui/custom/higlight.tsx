@@ -1,8 +1,9 @@
 import React from 'react';
+import Link from 'next/link';
 
 const Highlight = () => {
   return (
-    <button className="group relative bg-muted/50 rounded-full p-px overflow-hidden">
+    <Link href="https://github.com/Ansh-dhanani/metis" target="_blank" className="group relative bg-muted/50 rounded-full p-px overflow-hidden inline-block">
       <span className="absolute inset-0 rounded-full overflow-hidden">
         <span className="inset-0 absolute pointer-events-none select-none">
           <span className="block -translate-x-1/2 -translate-y-1/3 size-24 blur-xl bg-gradient-to-br from-primary " />
@@ -34,7 +35,7 @@ const Highlight = () => {
           Star Metis on Github
         </span>
       </span>
-    </button>
+    </Link>
   );
 }
 

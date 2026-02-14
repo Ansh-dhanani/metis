@@ -18,6 +18,7 @@ import { handleError } from '@/lib/utils/error-handler';
 import type { Assessment, CandidateRanking } from '@/lib/api/types';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatsCard } from '@/components/ui/stats-card';
+import { showFeatureNotImplemented } from '@/lib/toast-utils';
 
 export default function AnalyticsPage() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
@@ -63,8 +64,8 @@ export default function AnalyticsPage() {
   };
 
   const getScoreBadge = (score: number) => {
-    if (score >= 80) return <Badge variant="success">Excellent</Badge>;
-    if (score >= 60) return <Badge variant="warning">Good</Badge>;
+    if (score >= 80) return <Badge className="bg-green-600 text-white hover:bg-green-700">Excellent</Badge>;
+    if (score >= 60) return <Badge className="bg-yellow-600 text-white hover:bg-yellow-700">Good</Badge>;
     return <Badge variant="destructive">Needs Improvement</Badge>;
   };
 
@@ -94,7 +95,7 @@ export default function AnalyticsPage() {
           title="Analytics"
           description="View candidate performance and scores"
           action={
-            <Button variant="outline">
+            <Button onClick={showFeatureNotImplemented} variant="outline">
               <Download className="mr-2 h-4 w-4" />
               Export Report
             </Button>

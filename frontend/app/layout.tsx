@@ -29,11 +29,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} dark`}>
       <head>
-        <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+        <link rel="icon" href="/logo.png" type="image/png" />
         <meta name="description" content="Metis - AI-Powered Recruitment Assessment Platform" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}
+        suppressHydrationWarning
       >
         <Providers>
           {children}

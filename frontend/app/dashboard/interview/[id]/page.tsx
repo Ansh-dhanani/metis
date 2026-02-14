@@ -37,7 +37,7 @@ export default function InterviewPage() {
   const applicationId = params?.id as string;
   const jobId = searchParams?.get('jobId') || '';
   
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -106,7 +106,7 @@ export default function InterviewPage() {
   useEffect(() => {
     // Connect to WebSocket
     const newSocket = io(config.wsUrl);
-    setSocket(newSocket);
+    socketRef.current = newSocket;
 
     // Listen for AI responses
     newSocket.on('ai_response', (data: any) => {
@@ -158,7 +158,7 @@ export default function InterviewPage() {
   }, [messages]);
 
   const startInterview = async () => {
-    if (!socket) return;
+    if (!socketRef.current) return;
 
     try {
       // Fetch job details and application data
@@ -190,7 +190,7 @@ Resume Summary:
       `.trim();
 
       // Start interview via WebSocket with full context
-      socket.emit('start_interview', {
+      socketRef.current?.emit('start_interview', {
         jobId,
         applicationId,
         candidateId: user?.userId,
@@ -244,13 +244,13 @@ Resume Summary:
   };
 
   const sendAudio = async (audioBlob: Blob) => {
-    if (!socket) return;
+    if (!socketRef.current) return;
 
     try {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = (reader.result as string).split(',')[1];
-        socket.emit('send_audio', { audio: base64 });
+        socketRef.current?.emit('send_audio', { audio: base64 });
       };
       reader.readAsDataURL(audioBlob);
     } catch (_error) {
@@ -260,10 +260,10 @@ Resume Summary:
   };
 
   const sendText = () => {
-    if (!socket || !textInput.trim()) return;
+    if (!socketRef.current || !textInput.trim()) return;
 
     setIsProcessing(true);
-    socket.emit('send_text', { text: textInput });
+    socketRef.current?.emit('send_text', { text: textInput });
     setTextInput('');
   };
 

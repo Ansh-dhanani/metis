@@ -19,6 +19,15 @@ def create_job():
         except:
             auto_close_date = data.get('autoCloseDate')  # Store as string if parsing fails
     
+    # Parse autoSelectDate if provided
+    auto_select_date = None
+    if data.get('autoSelectTopCandidate') and data.get('autoSelectDate'):
+        try:
+            from dateutil import parser
+            auto_select_date = parser.parse(data.get('autoSelectDate'))
+        except:
+            auto_select_date = data.get('autoSelectDate')  # Store as string if parsing fails
+    
     job_doc = {
         "hrId": data.get("hrId"),  # HR user ID
         "title": data.get("title", "Untitled Job"),
@@ -32,9 +41,13 @@ def create_job():
         "skillWeights": data.get("skillWeights", None),
         "status": "open",  # open, closed, filled
         "autoSelectTopCandidate": data.get("autoSelectTopCandidate", False),
+        "autoSelectDate": auto_select_date,  # Datetime or string
         "autoCloseEnabled": data.get("autoCloseEnabled", False),
         "autoCloseDate": auto_close_date,  # Datetime or string
         "deadline": auto_close_date,  # Alias for easier reference
+        "maxApplicationsEnabled": data.get("maxApplicationsEnabled", False),
+        "maxApplications": data.get("maxApplications"),
+        "applicationCount": 0,  # Track number of applications
         "selectedCandidateId": None
     }
     result = db.jobs.insert_one(job_doc)

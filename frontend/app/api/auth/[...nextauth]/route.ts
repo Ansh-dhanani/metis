@@ -61,12 +61,14 @@ const handler = NextAuth({
 
           const data = await res.json();
 
-          if (res.ok && data.user) {
+          if (res.ok && data.userId) {
             return {
-              id: data.user.id,
-              email: data.user.email,
-              name: data.user.name,
-              role: data.user.role
+              id: data.userId,
+              email: data.email,
+              name: `${data.firstName} ${data.lastName}`,
+              role: data.role,
+              token: data.token,
+              userId: data.userId
             };
           }
 
@@ -115,18 +117,19 @@ const handler = NextAuth({
               // Set user data that will be stored in JWT token
               user.id = data.user.id;
               user.role = data.user.role;
+              user.needsRoleSelection = false;
               return true;
             }
             
             console.error("OAuth login failed:", data);
             return false;
           } else {
-            // New user - allow sign in but mark as needing registration
-            // Store their info so we can complete registration after role selection
-            user.id = "pending";  // Temporary ID
-            user.role = "pending";  // Will be set after role selection
+            // New user - mark as needing registration/role selection
+            user.id = "pending";
+            user.role = "pending";
             user.needsRoleSelection = true;
-            user.providerId = account.providerAccountId;  // Store for later use
+            user.provider = account.provider;
+            user.providerId = account.providerAccountId;
             return true;
           }
         } catch (error) {
@@ -147,6 +150,7 @@ const handler = NextAuth({
         token.providerId = user.providerId || account?.providerAccountId;
         token.needsRoleSelection = user.needsRoleSelection || false;
         token.email = user.email || undefined;
+        token.authToken = user.token || user.id;
         token.name = user.name || undefined;
         token.image = user.image || undefined;
       }
@@ -161,8 +165,20 @@ const handler = NextAuth({
         session.user.provider = token.provider || "";
         session.user.providerId = token.providerId;
         session.user.needsRoleSelection = token.needsRoleSelection;
+        session.user.image = token.image;
       }
       return session;
+    },
+
+    async redirect({ url, baseUrl }) {
+      // Handle OAuth new user redirect - send them to register page step 2
+      if (url.includes('needsRoleSelection=true')) {
+        return `${baseUrl}/register?oauth=true`;
+      }
+      // Default behavior
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      else if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
     }
   },
 

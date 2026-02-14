@@ -4,10 +4,8 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { jobsService, assessmentsService } from '@/lib/api/services';
-import { handleError } from '@/lib/utils/error-handler';
+import { useDashboardData, useHRStats } from '@/hooks/use-dashboard-data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,61 +15,17 @@ import { EmptyState } from '@/components/ui/empty-state';
 import Link from 'next/link';
 import { Briefcase, ClipboardList, Users, TrendingUp, Plus } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
-import type { Job, Assessment } from '@/lib/api/types';
 
 export default function HRDashboard() {
   const { user } = useAuth();
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [assessments, setAssessments] = useState<Assessment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return;
-
-      try {
-        const [jobsData] = await Promise.all([
-          jobsService.getJobs(user.userId),
-        ]);
-        setJobs(jobsData.jobs || []);
-        
-        // Fetch assessments for all jobs
-        const allAssessments: Assessment[] = [];
-        for (const job of jobsData.jobs) {
-          try {
-            const jobAssessments = await assessmentsService.getJobAssessments(job._id);
-            allAssessments.push(...jobAssessments);
-          } catch (error) {
-            // Silently skip individual job assessment fetch errors
-            console.error(`Failed to fetch assessments for job ${job._id}:`, error);
-          }
-        }
-        setAssessments(allAssessments);
-      } catch (error) {
-        handleError(error, 'Failed to load dashboard data. Please try again.');
-        setJobs([]);
-        setAssessments([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [user]);
-
-  const stats = {
-    totalJobs: jobs.length,
-    activeAssessments: assessments.filter(a => a.status === 'in_progress').length,
-    completedAssessments: assessments.filter(a => a.status === 'completed').length,
-    totalCandidates: new Set(assessments.map(a => a.candidateId)).size,
-  };
+  const { jobs, assessments, isLoading } = useDashboardData();
+  const { stats } = useHRStats();
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="text-center space-y-4">
-          <Spinner className="h-8 w-8 mx-auto" />
-          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Spinner  className="h-8 w-8" />
         </div>
       </div>
     );

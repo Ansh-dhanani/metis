@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function OAuthRoleSelectionPage() {
+function OAuthRoleSelectionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, update } = useSession();
@@ -149,5 +149,13 @@ export default function OAuthRoleSelectionPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function OAuthRoleSelectionPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <OAuthRoleSelectionContent />
+    </Suspense>
   );
 }

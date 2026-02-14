@@ -8,6 +8,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
+import { Spinner } from '@/components/ui/spinner';
 import type { UserRole } from '@/lib/api/types';
 
 interface ProtectedRouteProps {
@@ -32,9 +33,9 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="mt-4 text-sm text-muted-foreground">Loading...</p>
+        <div className="flex flex-col items-center gap-4">
+          <Spinner className="h-8 w-8" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
     );

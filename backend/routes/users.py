@@ -25,6 +25,7 @@ def register():
         "password": data['password'], # In production, hash this!
         "firstName": data.get("firstName", ""),
         "lastName": data.get("lastName", ""),
+        "phone": data.get("phone", ""),
         "role": data['role'],
         "linkedinUrl": data.get("linkedinUrl", ""),
         "githubUrl": data.get("githubUrl", ""),
@@ -275,6 +276,7 @@ def manage_profile():
             "firstName": user.get('firstName', ''),
             "lastName": user.get('lastName', ''),
             "phone": user.get('phone', ''),
+            "image": user.get('image', ''),
             "linkedinUrl": user.get('linkedinUrl', ''),
             "githubUrl": user.get('githubUrl', ''),
             "portfolioUrl": user.get('portfolioUrl', ''),
@@ -360,12 +362,12 @@ def oauth_login():
         user = db.users.find_one({"email": email})
         
         if user:
-            # Update OAuth info if not already set
+            # Update OAuth info and image (always update image in case it changed)
             update_data = {}
             if not user.get('oauthProvider'):
                 update_data['oauthProvider'] = provider
                 update_data['oauthProviderId'] = provider_id
-            if image and not user.get('image'):
+            if image:
                 update_data['image'] = image
             
             if update_data:
@@ -373,6 +375,8 @@ def oauth_login():
                     {"_id": user['_id']},
                     {"$set": update_data}
                 )
+                # Refresh user data after update
+                user = db.users.find_one({"_id": user['_id']})
             
             return jsonify({
                 "user": {
@@ -380,7 +384,7 @@ def oauth_login():
                     "email": user['email'],
                     "name": f"{user.get('firstName', '')} {user.get('lastName', '')}".strip() or name,
                     "role": user['role'],
-                    "image": user.get('image', image)
+                    "image": user.get('image', '')
                 },
                 "message": "Login successful"
             }), 200
@@ -428,6 +432,10 @@ def oauth_register():
         provider_id = data.get('providerId')
         image = data.get('image')
         role = data.get('role')  # 'hr' or 'candidate'
+        phone = data.get('phone', '')
+        linkedin_url = data.get('linkedinUrl', '')
+        github_url = data.get('githubUrl', '')
+        portfolio_url = data.get('portfolioUrl', '')
         
         if not email or not provider or not role:
             return jsonify({"error": "Email, provider, and role are required"}), 400
@@ -450,13 +458,14 @@ def oauth_register():
             "password": None,  # OAuth users don't have passwords
             "firstName": first_name,
             "lastName": last_name,
+            "phone": phone,
             "role": role,
             "oauthProvider": provider,
             "oauthProviderId": provider_id,
             "image": image,
-            "linkedinUrl": "",
-            "githubUrl": "",
-            "portfolioUrl": "",
+            "linkedinUrl": linkedin_url,
+            "githubUrl": github_url,
+            "portfolioUrl": portfolio_url,
             "createdAt": datetime.now(),
             "resume": None,
             "credibilityScore": {
@@ -467,14 +476,22 @@ def oauth_register():
         
         result = db.users.insert_one(user_doc)
         
+        # Generate a simple token (user_id as token for MVP - use JWT in production)
+        token = str(result.inserted_id)
+        
         return jsonify({
             "user": {
-                "id": str(result.inserted_id),
+                "_id": str(result.inserted_id),
+                "userId": str(result.inserted_id),
                 "email": email,
                 "name": name,
                 "role": role,
-                "image": image
+                "image": image,
+                "linkedinUrl": linkedin_url,
+                "githubUrl": github_url,
+                "portfolioUrl": portfolio_url
             },
+            "token": token,
             "message": "User registered successfully"
         }), 201
     

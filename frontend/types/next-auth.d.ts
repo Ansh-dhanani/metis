@@ -7,6 +7,8 @@ declare module "next-auth" {
     role?: string;
     needsRoleSelection?: boolean;
     providerId?: string;
+    provider?: string;
+    token?: string;
   }
 
   interface Session {

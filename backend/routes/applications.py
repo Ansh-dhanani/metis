@@ -56,6 +56,17 @@ def submit_application():
     if job.get('status') in ['closed', 'filled']:
         return jsonify({"error": "This job is no longer accepting applications"}), 400
     
+    # Check if max applications limit reached
+    if job.get('maxApplicationsEnabled') and job.get('maxApplications'):
+        current_count = db.applications.count_documents({"jobId": ObjectId(job_id)})
+        if current_count >= job.get('maxApplications'):
+            # Auto-close the job
+            db.jobs.update_one(
+                {"_id": ObjectId(job_id)},
+                {"$set": {"status": "closed", "closedAt": datetime.now()}}
+            )
+            return jsonify({"error": "This job has reached its maximum number of applications"}), 400
+    
     # Check if already applied
     existing_application = db.applications.find_one({
         "jobId": ObjectId(job_id),
@@ -156,6 +167,21 @@ def submit_application():
     }
     
     result = db.applications.insert_one(application)
+    
+    # Increment application count
+    db.jobs.update_one(
+        {"_id": ObjectId(job_id)},
+        {"$inc": {"applicationCount": 1}}
+    )
+    
+    # Check if max applications reached after this application
+    if job.get('maxApplicationsEnabled') and job.get('maxApplications'):
+        updated_job = db.jobs.find_one({"_id": ObjectId(job_id)})
+        if updated_job.get('applicationCount', 0) >= job.get('maxApplications'):
+            db.jobs.update_one(
+                {"_id": ObjectId(job_id)},
+                {"$set": {"status": "closed", "closedAt": datetime.now()}}
+            )
     
     # Auto-update all pending applications to under_review
     db.applications.update_many(

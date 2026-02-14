@@ -12,6 +12,7 @@ export interface User {
   firstName: string;
   lastName: string;
   phone?: string;
+  image?: string;
   skills?: string[];
   experience?: any[];
   education?: any[];
@@ -34,6 +35,7 @@ export interface RegisterRequest {
   role: UserRole;
   firstName: string;
   lastName: string;
+  phone?: string;
   linkedinUrl?: string;
   githubUrl?: string;
   portfolioUrl?: string;

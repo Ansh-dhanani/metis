@@ -16,6 +16,7 @@ import { Spinner } from '@/components/ui/spinner';
 import type { CandidateRanking } from '@/lib/api/types';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
+import { showFeatureNotImplemented } from '@/lib/toast-utils';
 
 export default function CandidatesPage() {
   const [rankings, setRankings] = useState<CandidateRanking[]>([]);
@@ -152,10 +153,10 @@ export default function CandidatesPage() {
 
                   {/* Actions */}
                   <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button onClick={showFeatureNotImplemented} size="sm" variant="outline" className="flex-1">
                       View Profile
                     </Button>
-                    <Button size="sm" className="flex-1">
+                    <Button onClick={showFeatureNotImplemented} size="sm" className="flex-1">
                       <Mail className="mr-2 h-4 w-4" />
                       Contact
                     </Button>

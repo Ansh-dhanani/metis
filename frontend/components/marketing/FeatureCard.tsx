@@ -10,7 +10,7 @@ export function FeatureCard({
   return (
     <div className="space-y-4">
       {/* Icon circle */}
-      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-white">
         {icon}
       </div>
 

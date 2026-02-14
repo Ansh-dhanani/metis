@@ -6,8 +6,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { applicationsService, jobsService } from '@/lib/api/services';
-import { handleError } from '@/lib/utils/error-handler';
+import { useDashboardData, useCandidateStats } from '@/hooks/use-dashboard-data';
+import { jobsService } from '@/lib/api/services';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,51 +43,41 @@ function formatDate(dateString: string) {
 
 export default function CandidateDashboard() {
   const { user } = useAuth();
-  const [applications, setApplications] = useState<Application[]>([]);
+  const { applications, isLoading } = useDashboardData();
+  const { stats } = useCandidateStats();
   const [jobs, setJobs] = useState<Record<string, Job>>({});
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return;
-
-      try {
-        const appsData: any = await applicationsService.getCandidateApplications(user.userId);
-        setApplications(appsData || []);
-
-        // Fetch job details for each application
-        const jobsMap: Record<string, Job> = {};
-        for (const app of appsData || []) {
+    const fetchJobDetails = async () => {
+      const jobsMap: Record<string, Job> = {};
+      await Promise.all(
+        applications.map(async (app) => {
           try {
             const jobData = await jobsService.getJob(app.jobId);
             jobsMap[app.jobId] = jobData;
           } catch (error) {
-            // Silently skip individual job fetch errors
             console.error(`Failed to fetch job ${app.jobId}:`, error);
           }
-        }
-        setJobs(jobsMap);
-      } catch (error) {
-        handleError(error, 'Failed to load your applications. Please try again.');
-        setApplications([]);
-      } finally {
-        setIsLoading(false);
-      }
+        })
+      );
+      setJobs(jobsMap);
     };
 
-    fetchData();
-  }, [user]);
+    if (applications.length > 0) {
+      fetchJobDetails();
+    }
+  }, [applications]);
 
-  const stats = {
-    total: applications.length,
-    pending: applications.filter(a => a.status === 'pending').length,
-    underReview: applications.filter(a => a.status === 'under_review').length,
-    accepted: applications.filter(a => a.status === 'accepted').length,
-    avgScore: applications
-      .filter(a => a.assessmentScore !== undefined)
-      .reduce((acc, a) => acc + (a.assessmentScore || 0), 0) / 
-      (applications.filter(a => a.assessmentScore !== undefined).length || 1),
-  };
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Spinner className="h-8 w-8" />
+          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

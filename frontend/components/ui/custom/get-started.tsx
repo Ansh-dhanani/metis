@@ -1,22 +1,25 @@
 import React from 'react';
 import styled from 'styled-components';
+import Link from 'next/link';
 
 const GetStartedButton = () => {
   return (
     <StyledWrapper>
-      <button className="button button-item">
-        <span className="button-bg">
-          <span className="button-bg-layers">
-            <span className="button-bg-layer button-bg-layer-1 -purple" />
-            <span className="button-bg-layer button-bg-layer-2 -turquoise" />
-            <span className="button-bg-layer button-bg-layer-3 -yellow" />
+      <Link href="/register">
+        <button className="button button-item">
+          <span className="button-bg">
+            <span className="button-bg-layers">
+              <span className="button-bg-layer button-bg-layer-1 -purple" />
+              <span className="button-bg-layer button-bg-layer-2 -turquoise" />
+              <span className="button-bg-layer button-bg-layer-3 -yellow" />
+            </span>
           </span>
-        </span>
-        <span className="button-inner">
-          <span className="button-inner-static">Get Started</span>
-          <span className="button-inner-hover">&nbsp; Let's Go !!</span>
-        </span>
-      </button>
+          <span className="button-inner">
+            <span className="button-inner-static">Get Started</span>
+            <span className="button-inner-hover">&nbsp; Let's Go !!</span>
+          </span>
+        </button>
+      </Link>
     </StyledWrapper>
   );
 }

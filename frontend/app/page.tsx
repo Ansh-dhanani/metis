@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { Logo } from "@/components/logo";
 import DarkVeil from "@/components/DarkVeil";
 import { Button } from "@/components/ui/button";
 import ScrollVelocity from "@/components/ScrollVelocity";
+import { showFeatureNotImplemented } from "@/lib/toast-utils";
 
 // Marketing Section Components
 import HeroArcSection from "@/components/marketing/HeroArcSection";
@@ -26,7 +28,7 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
-import { Brain, Zap, Shield, Code, BookOpen, HelpCircle, Book } from "lucide-react";
+import { Brain, Zap, Shield, Code } from "lucide-react";
 
 function ListItem({
   title,
@@ -64,6 +66,9 @@ function ListItem({
 }
 
 export default function LandingPage() {
+  const { data: session } = useSession();
+  const getStartedHref = session ? "/dashboard" : "/login";
+
   return (
     <div className="relative bg-background text-foreground overflow-hidden">
       <div
@@ -84,18 +89,19 @@ export default function LandingPage() {
           warpAmount={0}
           resolutionScale={1}
         />
-        {/* Left blur overlay - blends DarkVeil into background */}
-        <div className="absolute left-0 top-0 h-full w-48 bg-gradient-to-r from-background via-background/80 to-transparent pointer-events-none z-10" />
-        {/* Right blur overlay - blends DarkVeil into background */}
-        <div className="absolute right-0 top-0 h-full w-48 bg-gradient-to-l from-background via-background/80 to-transparent pointer-events-none z-10" />
       </div>
 
       {/* Simplified Navigation */}
-      <nav className="fixed top-5 left-5 right-5 z-50 flex items-center justify-between px-8 py-4 bg-background/80 backdrop-blur-md border border-border/40 rounded-2xl" style={{
-        maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
-        WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)'
-      }}>
-        <Logo size="md" showText={true} />
+      <nav className="fixed top-5 left-5 right-5 z-50">
+        {/* Visual background with mask */}
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-md border border-border/40 rounded-2xl pointer-events-none" style={{
+          maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)'
+        }} />
+        
+        {/* Content without mask */}
+        <div className="relative flex items-center justify-between px-8 py-4">
+          <Logo size="md" showText={true} />
 
         <NavigationMenu className="hidden md:flex">
           <NavigationMenuList className="flex items-center">
@@ -125,7 +131,7 @@ export default function LandingPage() {
                     Enterprise-grade security with SOC 2 compliance.
                   </ListItem>
                   <ListItem
-                    href="#api"
+                    href="/docs"
                     title="Developer API"
                     icon={<Code className="h-4 w-4 text-white" />}
                   >
@@ -136,25 +142,8 @@ export default function LandingPage() {
             </NavigationMenuItem>
 
             <NavigationMenuItem >
-              <NavigationMenuTrigger className="rounded-none">Resources</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid gap-2 p-4 w-[300px]">
-                  <ListItem href="#docs" title="Documentation" icon={<BookOpen className="h-4 w-4 text-white" />}>
-                    Complete guides and API references.
-                  </ListItem>
-                  <ListItem href="#blog" title="Blog" icon={<Book  className="h-4 w-4 text-white" />}>
-                    Latest updates and best practices.
-                  </ListItem>
-                  <ListItem href="#support" title="Support" icon={<HelpCircle className="h-4 w-4 text-white" />}>
-                    Get help from our expert team.
-                  </ListItem>
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-
-            <NavigationMenuItem >
               <NavigationMenuLink  asChild className={navigationMenuTriggerStyle()}>
-                <Link href="#pricing" className="rounded-none">
+                <Link href="/pricing" className="rounded-none">
                   Pricing
                 </Link>
               </NavigationMenuLink>
@@ -162,7 +151,7 @@ export default function LandingPage() {
 
             <NavigationMenuItem>
               <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-                <Link href="#about" className="rounded-r-full">
+                <Link href="/about" className="rounded-r-full">
                   About
                 </Link>
               </NavigationMenuLink>
@@ -171,16 +160,19 @@ export default function LandingPage() {
         </NavigationMenu>
 
         <div className="flex items-center gap-4">
-          <Link href="/login" className="hidden sm:block">
-            <Button variant="ghost" className="text-sm ">
-              Sign In
-            </Button>
-          </Link>
-          <Link href="/login">
+          {!session && (
+            <Link href="/login" className="hidden sm:block">
+              <Button variant="ghost" className="text-sm ">
+                Sign In
+              </Button>
+            </Link>
+          )}
+          <Link href={getStartedHref}>
             <Button className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-6 py-5 text-md font-medium">
-              Get Started
+              {session ? "Go to Dashboard" : "Get Started"}
             </Button>
           </Link>
+        </div>
         </div>
       </nav>
 
@@ -188,6 +180,23 @@ export default function LandingPage() {
       <main className="relative z-10 ">
         <HeroArcSection />
         <ComparisonSection />
+        {/* Trusted By Section */}
+        <section className="py-1 bg-muted/20  overflow-hidden max-w-7xl mx-auto px-4 rounded-lg  mb-24">
+
+          <div className="space-y-4">
+            
+            <ScrollVelocity
+              texts={["AI-POWERED • INNOVATIVE • "]}
+              velocity={50}
+              className="text-muted-foreground/40"
+            />
+            <ScrollVelocity
+              texts={["EFFICIENT • INTELLIGENT • "]}
+              velocity={-50}
+              className="text-muted-foreground/40"
+            />
+          </div>
+        </section>
         <HighlightFeatureCard />
         <MediaFeatureCard />
         <SplitFeatureSection />
@@ -197,23 +206,7 @@ export default function LandingPage() {
         <TestimonialFeature />
         <CTAArcSection />
 
-        {/* Trusted By Section */}
-        <section className="py-1bg-muted/20  overflow-hidden">
-          {" "}
-          <div className="space-y-4">
-            {" "}
-            <ScrollVelocity
-              texts={["AI-POWERED • INNOVATIVE • "]}
-              velocity={50}
-              className="text-muted-foreground/40"
-            />{" "}
-            <ScrollVelocity
-              texts={["EFFICIENT • INTELLIGENT • "]}
-              velocity={-50}
-              className="text-muted-foreground/40"
-            />{" "}
-          </div>{" "}
-        </section>
+        
       </main>
 
       {/* Footer */}
@@ -232,7 +225,7 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
                   <Link
-                    href="#"
+                    href="#features"
                     className="hover:text-foreground transition-colors"
                   >
                     Features
@@ -240,7 +233,7 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/pricing"
                     className="hover:text-foreground transition-colors"
                   >
                     Pricing
@@ -248,10 +241,10 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/docs"
                     className="hover:text-foreground transition-colors"
                   >
-                    Use Cases
+                    Documentation
                   </Link>
                 </li>
               </ul>
@@ -262,23 +255,16 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
                   <Link
-                    href="#"
+                    href="/about"
                     className="hover:text-foreground transition-colors"
                   >
                     About
                   </Link>
                 </li>
+
                 <li>
                   <Link
-                    href="#"
-                    className="hover:text-foreground transition-colors"
-                  >
-                    Blog
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="#"
+                    href="/careers"
                     className="hover:text-foreground transition-colors"
                   >
                     Careers
@@ -292,7 +278,7 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
                   <Link
-                    href="#"
+                    href="/privacy"
                     className="hover:text-foreground transition-colors"
                   >
                     Privacy
@@ -300,7 +286,7 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/terms"
                     className="hover:text-foreground transition-colors"
                   >
                     Terms
@@ -308,7 +294,7 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/security"
                     className="hover:text-foreground transition-colors"
                   >
                     Security
@@ -323,24 +309,25 @@ export default function LandingPage() {
               © 2024 Metis. All rights reserved.
             </p>
             <div className="flex gap-6 text-sm text-muted-foreground">
-              <Link
-                href="#"
-                className="hover:text-foreground transition-colors"
+              <button
+                onClick={showFeatureNotImplemented}
+                className="hover:text-foreground transition-colors cursor-pointer"
               >
                 Twitter
-              </Link>
+              </button>
               <Link
-                href="#"
-                className="hover:text-foreground transition-colors"
+                href="https://github.com/Ansh-dhanani/metis"
+                target="_blank"
+                className="hover:text-foreground transition-colors cursor-pointer"
               >
                 GitHub
               </Link>
-              <Link
-                href="#"
-                className="hover:text-foreground transition-colors"
+              <button
+                onClick={showFeatureNotImplemented}
+                className="hover:text-foreground transition-colors cursor-pointer"
               >
                 Discord
-              </Link>
+              </button>
             </div>
           </div>
         </div>

@@ -1,277 +1,703 @@
-# METIS - AI-Powered Recruitment Platform
+# Metis - AI-Powered Recruitment Platform
 
-> Automated candidate evaluation with resume parsing, live AI interviews, and intelligent scoring
+An intelligent recruitment platform that automates candidate evaluation through resume parsing, live AI interviews, and intelligent scoring algorithms.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/metis)
+## Table of Contents
 
-## 🚀 Quick Deploy
+- [Overview](#overview)
+- [Features](#features)
+- [Technology Stack](#technology-stack)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [API Documentation](#api-documentation)
+- [Deployment](#deployment)
+- [Testing](#testing)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
 
-**⚡ 10-minute deployment** with free tiers:
+## Overview
 
-1. **Backend** → Railway/Render (WebSocket support)
-2. **Frontend** → Vercel (Next.js optimized)
+Metis revolutionizes the recruitment process by automating candidate evaluation through a two-round assessment system:
 
-👉 **[Quick Deploy Guide →](QUICK_DEPLOY.md)**
+1. **Round 1 (30%)**: Resume parsing and evaluation using AI
+2. **Round 2 (70%)**: Live AI-powered interview with contextual questions
+3. **Final Scoring**: Weighted algorithm combining both rounds with detailed feedback
 
----
+The platform supports both candidates and HR recruiters, providing a seamless experience from application to final candidate selection.
 
-## ✨ Features
+## Features
 
-### 🤖 Automated Pipeline
-- **Resume Upload** → AI parsing with auto-fill
-- **Round 1 (30%)** → Resume evaluation with METIS AI
-- **Round 2 (70%)** → Live AI interview (10 questions)
-- **Final Score** → Weighted scoring + HR leaderboard
+### For Candidates
+- Resume upload with automatic parsing and form auto-fill
+- Live AI interview with voice and text input support
+- Real-time feedback and scoring
+- Application status tracking
+- Profile management with skills and experience tracking
 
-### 💬 Live AI Interview
-- Real-time WebSocket connection
-- Voice + text input support
-- Contextual questions based on resume
-- Auto-evaluation with detailed feedback
+### For HR Recruiters
+- Job posting creation and management
+- Automated candidate evaluation pipeline
+- Intelligent leaderboard with ranked candidates
+- Interview transcript review
+- Comprehensive candidate analytics
+- Bulk candidate management
 
-### 📊 Smart Leaderboard
-- Final scores with round breakdowns
-- Auto-sorted by performance
-- Complete candidate summaries
-- Interview transcript viewing
+### Core Functionality
+- **Resume Parser**: Extracts skills, experience, education from PDF/DOC/DOCX files
+- **AI Interviewer**: Context-aware questioning based on candidate's resume
+- **Scoring Engine**: Weighted algorithm combining resume analysis and interview performance
+- **Real-time Communication**: WebSocket-based live interviews
+- **Responsive Design**: Mobile-friendly interface built with modern web technologies
 
----
+## Technology Stack
 
-## 🛠️ Tech Stack
+### Frontend
+- **Framework**: Next.js 16 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **State Management**: React Context API
+- **Authentication**: NextAuth.js with OAuth support
+- **Real-time**: Socket.io client for live interviews
 
-**Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS, shadcn/ui  
-**Backend**: Flask, Python 3.11, SocketIO, MongoDB  
-**AI Models**: Groq (LLM), METIS (Resume Parser), LangGraph (Scoring)
+### Backend
+- **Framework**: Flask with Flask-SocketIO
+- **Language**: Python 3.11+
+- **Database**: MongoDB with MongoEngine ODM
+- **Authentication**: JWT tokens with role-based access
+- **Real-time**: SocketIO for WebSocket communication
+- **AI Integration**: Groq API for LLM services
 
----
+### AI/ML Components
+- **Resume Parser**: Custom METIS model for document analysis
+- **Interview Engine**: LangGraph for conversational AI
+- **Scoring Algorithm**: Custom weighted scoring system
+- **Voice Processing**: Speech-to-text integration
 
-## 📦 Local Development
+### Infrastructure
+- **Deployment**: Docker containerization
+- **Hosting**: Vercel (frontend), Railway/Render (backend)
+- **Database**: MongoDB Atlas or self-hosted MongoDB
+- **Caching**: Redis for session management
+- **Monitoring**: Built-in logging and error tracking
 
-### Prerequisites
-- Python 3.11+
-- Bun (or Node.js 20+)
-- MongoDB (local or Atlas)
-- Groq API key
+## Prerequisites
 
-### Setup
+Before installing Metis, ensure you have the following:
 
-```bash
-# Clone repository
-git clone https://github.com/yourusername/metis.git
-cd metis
+- **Python**: Version 3.11 or higher
+- **Node.js**: Version 20+ (or Bun runtime)
+- **MongoDB**: Local installation or MongoDB Atlas account
+- **Git**: For version control
+- **Docker**: Optional, for containerized deployment
 
-# Backend setup
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your credentials
-python app.py
+### API Keys Required
+- **Groq API Key**: For AI language model services
+- **MongoDB Connection String**: Database access
+- **OAuth Credentials**: Google/GitHub/LinkedIn (optional)
 
-# Frontend setup (new terminal)
-cd frontend
-bun install
-cp .env.local.example .env.local
-# Edit .env.local if needed
-bun run dev
-```
+## Installation
 
-Visit: http://localhost:3000
+### Local Development Setup
 
----
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/yourusername/metis.git
+   cd metis
+   ```
 
-## 🌐 Production Deployment
+2. **Backend Setup**
+   ```bash
+   cd backend
 
-### Option 1: Docker (Recommended)
+   # Create virtual environment
+   python -m venv venv
 
-**Easiest way to deploy - works on any platform!**
+   # Activate virtual environment
+   # Windows:
+   venv\Scripts\activate
+   # macOS/Linux:
+   source venv/bin/activate
 
-```bash
-# Copy environment template
-cp .env.example .env
-# Edit .env with your credentials
+   # Install dependencies
+   pip install -r requirements.txt
 
-# Deploy with Docker Compose
-docker-compose up -d
-```
+   # Copy environment template
+   cp .env.example .env
 
-📘 **[Complete Docker Guide →](DOCKER_DEPLOYMENT.md)**
+   # Edit .env with your configuration (see Configuration section)
+   ```
 
-Supports:
-- Render
-- Railway  
-- Fly.io
-- DigitalOcean
-- AWS/GCP/Azure
+3. **Frontend Setup**
+   ```bash
+   cd ../frontend
 
-### Option 2: Vercel + Railway
+   # Install dependencies
+   bun install
+   # or: npm install
 
-**Frontend** on Vercel, **Backend** on Railway
+   # Copy environment template
+   cp .env.example .env.local
 
-📘 **[Vercel Deployment Guide →](VERCEL_DEPLOYMENT.md)**
+   # Edit .env.local if needed
+   ```
 
-### Option 3: Quick Deploy Script
+4. **Database Setup**
+   ```bash
+   # Ensure MongoDB is running locally or configure Atlas connection
+   # Update MONGO_URI in backend/.env
+   ```
 
-**Windows:**
-```powershell
-.\deploy-docker.ps1
-```
+5. **Start Development Servers**
+   ```bash
+   # Terminal 1: Backend
+   cd backend
+   python app.py
 
-**Linux/Mac:**
-```bash
-chmod +x deploy-docker.sh
-./deploy-docker.sh
-```
+   # Terminal 2: Frontend
+   cd frontend
+   bun run dev
+   # or: npm run dev
+   ```
 
----
+6. **Access the Application**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:5000
 
-## 📚 Documentation
+## Configuration
 
-- [Quick Deploy Guide](QUICK_DEPLOY.md) - 10-minute setup
-- [Vercel Deployment](VERCEL_DEPLOYMENT.md) - Detailed Vercel + Railway guide
-- [Production Ready](PRODUCTION_READY.md) - Checklist and features
-- [Pipeline Documentation](PIPELINE_FINAL_COMPLETE.md) - Complete technical docs
+### Backend Environment Variables (.env)
 
----
+Create a `.env` file in the `backend/` directory with the following variables. You can copy from `backend/.env.example`:
 
-## 🔐 Environment Variables
-
-### Backend (.env)
 ```env
-MONGO_URI=mongodb+srv://...
-GROQ_API_KEY=gsk_...
-FLASK_ENV=production
-SECRET_KEY=random-secret-here
-FRONTEND_URL=https://your-app.vercel.app
+# Database Configuration
+MONGO_URI=mongodb://localhost:27017/metis
+# For MongoDB Atlas, use:
+# MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/metis
+
+# AI Services
+GROQ_API_KEY=your_groq_api_key_here
+
+# Security Keys
+SECRET_KEY=your_random_secret_key_here
+JWT_SECRET_KEY=your_jwt_secret_key_here
+
+# Environment Settings
+FLASK_ENV=development
+DEBUG=True
+
+# CORS Configuration
+FRONTEND_URL=http://localhost:3000
+
+# WebSocket Configuration (for production)
+# WS_URL=wss://your-backend-domain.com
+
+# Optional: Redis Configuration (for production caching)
+# REDIS_URL=redis://localhost:6379
+
+# Optional: Email Configuration
+# SMTP_SERVER=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USERNAME=your-email@gmail.com
+# SMTP_PASSWORD=your-app-password
+
+# Optional: File Upload Settings
+# MAX_FILE_SIZE=5242880  # 5MB in bytes
+# UPLOAD_FOLDER=uploads/
+
+# Optional: Logging Configuration
+# LOG_LEVEL=INFO
+# LOG_FILE=logs/app.log
 ```
 
-### Frontend (.env.production)
+### Frontend Environment Variables (.env.local)
+
+Create a `.env.local` file in the `frontend/` directory with the following variables. You can copy from `frontend/.env.example`:
+
 ```env
-NEXT_PUBLIC_API_URL=https://your-backend.up.railway.app
-NEXT_PUBLIC_WS_URL=https://your-backend.up.railway.app
-NODE_ENV=production
+# API Configuration
+NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_WS_URL=http://localhost:5000
+
+# Authentication Configuration
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret_here
+
+# OAuth Providers (Optional)
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# GitHub OAuth
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+
+# LinkedIn OAuth
+LINKEDIN_CLIENT_ID=your_linkedin_client_id
+LINKEDIN_CLIENT_SECRET=your_linkedin_client_secret
+
+# Production Configuration (when deploying)
+# NEXT_PUBLIC_API_URL=https://your-backend-api.com
+# NEXT_PUBLIC_WS_URL=wss://your-backend-api.com
+# NEXTAUTH_URL=https://your-frontend-domain.com
+
+# Optional: Analytics
+# NEXT_PUBLIC_GA_ID=your_google_analytics_id
+# NEXT_PUBLIC_MIXPANEL_TOKEN=your_mixpanel_token
+
+# Optional: Error Tracking
+# NEXT_PUBLIC_SENTRY_DSN=your_sentry_dsn
+
+# Optional: CDN Configuration
+# NEXT_PUBLIC_CDN_URL=https://your-cdn-domain.com
+
+# Development Configuration
+# NODE_ENV=development
 ```
 
----
+## Usage
 
-## 🎯 User Flows
+### For Candidates
 
-### Candidate Journey
-1. Register/Login
-2. Browse jobs
-3. Upload resume (auto-parsed)
-4. Submit application (auto-evaluated)
-5. Complete AI interview
-6. View results with detailed feedback
+1. **Registration**: Create an account with email/password or OAuth
+2. **Profile Setup**: Complete your profile with personal information
+3. **Resume Upload**: Upload your resume for automatic parsing
+4. **Job Search**: Browse available job postings
+5. **Application**: Apply to jobs with auto-filled information
+6. **AI Interview**: Complete the live AI interview when scheduled
+7. **Results**: View your scores and feedback
 
-### HR Journey
-1. Register/Login (as HR)
-2. Create job posting
-3. View candidate leaderboard
-4. See final scores (ranked)
-5. Review interview transcripts
-6. Select top candidates
+### For HR Recruiters
 
----
+1. **Registration**: Create an HR account
+2. **Job Creation**: Post new job openings with requirements
+3. **Candidate Review**: Monitor applications and automated evaluations
+4. **Interview Oversight**: Review AI interview transcripts
+5. **Decision Making**: Use the leaderboard to select top candidates
+6. **Analytics**: Access detailed recruitment analytics
 
-## 🧪 Testing
+### Admin Features
 
+- User management and role assignment
+- System configuration and settings
+- Analytics dashboard
+- Bulk operations and data export
+
+## API Documentation
+
+### Authentication Endpoints
+
+#### POST /api/auth/login
+User login with email and password.
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+
+**Response:**
+```json
+{
+  "token": "jwt_token_here",
+  "user": {
+    "userId": "user_id",
+    "email": "user@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "role": "candidate"
+  }
+}
+```
+
+#### POST /api/auth/register
+User registration.
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "firstName": "John",
+  "lastName": "Doe",
+  "role": "candidate"
+}
+```
+
+### Job Management Endpoints
+
+#### GET /api/jobs
+Retrieve paginated list of jobs.
+
+**Query Parameters:**
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 10)
+- `search`: Search query
+- `location`: Filter by location
+- `type`: Filter by job type
+
+#### POST /api/jobs
+Create a new job posting (HR only).
+
+**Request Body:**
+```json
+{
+  "title": "Software Engineer",
+  "description": "Job description here",
+  "requirements": ["Python", "React", "MongoDB"],
+  "location": "Remote",
+  "type": "full-time",
+  "salary": {
+    "min": 50000,
+    "max": 80000,
+    "currency": "USD"
+  }
+}
+```
+
+#### GET /api/jobs/{job_id}
+Retrieve detailed job information.
+
+### Application Endpoints
+
+#### POST /api/applications
+Submit a job application.
+
+**Request Body:**
+```json
+{
+  "jobId": "job_id_here",
+  "resume": "uploaded_file",
+  "coverLetter": "Optional cover letter",
+  "answers": {
+    "experience": "5 years",
+    "availability": "immediate"
+  }
+}
+```
+
+#### GET /api/applications/candidate/{user_id}
+Get applications for a candidate.
+
+#### GET /api/applications/job/{job_id}
+Get applications for a job (HR only).
+
+### Interview Endpoints
+
+#### POST /api/interview/start
+Start an AI interview session.
+
+**Request Body:**
+```json
+{
+  "applicationId": "application_id",
+  "jobId": "job_id"
+}
+```
+
+#### WebSocket /interview
+Real-time interview communication.
+
+**Message Format:**
+```json
+{
+  "type": "answer",
+  "content": "User's answer here",
+  "questionId": "current_question_id"
+}
+```
+
+### User Management Endpoints
+
+#### GET /api/users/profile
+Get current user profile.
+
+#### PUT /api/users/profile
+Update user profile.
+
+**Request Body:**
+```json
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "phone": "+1234567890",
+  "skills": ["Python", "JavaScript"],
+  "experience": "5 years",
+  "education": [
+    {
+      "institution": "University Name",
+      "degree": "Bachelor's",
+      "field": "Computer Science",
+      "year": 2020
+    }
+  ]
+}
+```
+
+#### POST /api/users/upload-resume
+Upload and parse resume.
+
+**Request Body:** FormData with file
+
+### Scoring and Evaluation Endpoints
+
+#### GET /api/evaluation/{application_id}
+Get evaluation results for an application.
+
+#### GET /api/rankings/job/{job_id}
+Get candidate rankings for a job (HR only).
+
+## Deployment
+
+### Docker Deployment (Recommended)
+
+1. **Prepare Environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env with production values
+   ```
+
+2. **Build and Deploy**
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Access Application**
+   - Frontend: https://your-domain.com
+   - Backend: https://your-backend-domain.com
+
+### Manual Deployment
+
+#### Backend Deployment
 ```bash
-# Backend tests
+# Using Railway
+railway login
+railway link
+railway up
+
+# Using Render
+# Connect GitHub repository and deploy
+```
+
+#### Frontend Deployment
+```bash
+# Using Vercel
+vercel --prod
+
+# Configure environment variables in Vercel dashboard
+```
+
+### Production Checklist
+
+- [ ] Environment variables configured
+- [ ] Database connection established
+- [ ] SSL certificates configured
+- [ ] Domain DNS configured
+- [ ] WebSocket support verified (Railway/Render)
+- [ ] File upload limits configured
+- [ ] Rate limiting implemented
+- [ ] Monitoring and logging set up
+- [ ] Backup strategy implemented
+
+## Testing
+
+### Backend Testing
+```bash
 cd backend
 pytest
-
-# Frontend tests
-cd frontend
-bun test
-
-# E2E tests
-bun run test:e2e
 ```
 
----
+### Frontend Testing
+```bash
+cd frontend
+bun test
+# or: npm test
+```
 
-## 📊 Features in Detail
+### End-to-End Testing
+```bash
+cd frontend
+bun run test:e2e
+# or: npm run test:e2e
+```
 
-### Resume Parser (METIS)
-- Extracts skills, experience, education
-- PDF/DOC/DOCX support
-- Auto-fills application form
-- Proficiency scoring
+### Manual Testing Checklist
 
-### AI Interviewer
-- Contextual questions based on resume
-- Voice recognition (STT)
-- Natural conversation flow
-- Real-time transcript
+#### Candidate Flow
+- [ ] User registration and login
+- [ ] Profile completion
+- [ ] Resume upload and parsing
+- [ ] Job search and filtering
+- [ ] Application submission
+- [ ] AI interview completion
+- [ ] Results viewing
 
-### Scoring Engine
-- Resume analysis (30%)
-- Interview performance (70%)
-- Skill matching
-- Experience validation
-- Final weighted score
+#### HR Flow
+- [ ] HR registration and login
+- [ ] Job posting creation
+- [ ] Candidate application review
+- [ ] Interview transcript access
+- [ ] Leaderboard functionality
+- [ ] Analytics dashboard
 
----
-
-## 🔧 Project Structure
+## Project Structure
 
 ```
 metis/
 ├── backend/
-│   ├── models/metis/          # AI models
-│   ├── routes/                # API endpoints
-│   ├── config/                # Production config
-│   ├── app.py                 # Flask app
-│   └── wsgi.py                # Production entry
+│   ├── api/                 # API route handlers
+│   ├── models/             # Database models and AI models
+│   ├── routes/             # Flask route definitions
+│   ├── services/           # Business logic services
+│   ├── utils/              # Utility functions
+│   ├── config/             # Configuration files
+│   ├── app.py              # Main Flask application
+│   ├── wsgi.py             # WSGI entry point
+│   └── requirements.txt    # Python dependencies
 ├── frontend/
-│   ├── app/                   # Next.js pages
-│   ├── components/            # React components
-│   ├── lib/                   # API services, config
-│   └── vercel.json            # Vercel config
-└── docs/                      # Documentation
+│   ├── app/                # Next.js app router pages
+│   │   ├── dashboard/      # Protected dashboard pages
+│   │   ├── auth/          # Authentication pages
+│   │   └── api/           # Next.js API routes
+│   ├── components/        # Reusable React components
+│   ├── contexts/          # React context providers
+│   ├── hooks/             # Custom React hooks
+│   ├── lib/               # Utility libraries and API clients
+│   ├── types/             # TypeScript type definitions
+│   └── package.json       # Node.js dependencies
+├── model/                 # AI model files and training data
+├── docs/                  # Documentation files
+├── docker-compose.yml     # Docker orchestration
+├── Dockerfile            # Container configuration
+├── LICENSE               # License file
+└── README.md             # This file
 ```
 
----
+## Contributing
 
-## 🤝 Contributing
+We welcome contributions to Metis! Please follow these guidelines:
 
-Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
+### Development Workflow
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing`)
-5. Open Pull Request
+1. **Fork the Repository**
+   ```bash
+   git clone https://github.com/yourusername/metis.git
+   cd metis
+   git checkout -b feature/your-feature-name
+   ```
 
----
+2. **Set Up Development Environment**
+   ```bash
+   # Follow installation instructions above
+   ```
 
-## 📄 License
+3. **Make Changes**
+   - Write clear, concise commit messages
+   - Add tests for new features
+   - Update documentation as needed
+   - Ensure code follows existing style guidelines
 
-MIT License - see [LICENSE](LICENSE) file
+4. **Testing**
+   ```bash
+   # Run all tests
+   cd backend && pytest
+   cd ../frontend && bun test
+   ```
 
----
+5. **Submit Pull Request**
+   - Provide detailed description of changes
+   - Reference any related issues
+   - Ensure CI checks pass
 
-## 🙏 Acknowledgments
+### Code Style Guidelines
 
-- Groq for LLM API
-- MongoDB for database
-- Vercel for hosting
-- Railway for backend hosting
-- shadcn/ui for components
+- **Python**: Follow PEP 8 with Black formatter
+- **TypeScript**: Use ESLint and Prettier
+- **Commits**: Use conventional commit format
+- **Documentation**: Update README and docs for API changes
 
----
+### Reporting Issues
 
-## 📞 Support
+- Use GitHub Issues for bug reports and feature requests
+- Provide detailed steps to reproduce bugs
+- Include relevant error messages and logs
+- Specify your environment (OS, browser, versions)
 
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+### Getting Help
+
+- **Documentation**: Check the [docs/](docs/) directory
 - **Issues**: [GitHub Issues](https://github.com/yourusername/metis/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/yourusername/metis/discussions)
-- **Email**: your-email@example.com
+- **Email**: Contact the maintainers
+
+### Troubleshooting
+
+#### Common Issues
+
+**WebSocket Connection Failed**
+- Ensure backend is deployed to WebSocket-compatible platform (Railway/Render)
+- Check firewall settings and CORS configuration
+- Verify WebSocket URLs in environment variables
+
+**Resume Parsing Failed**
+- Check file format (PDF/DOC/DOCX supported)
+- Verify file size limits
+- Ensure METIS model is properly configured
+
+**AI Interview Not Starting**
+- Confirm Groq API key is valid
+- Check WebSocket connection
+- Review server logs for errors
+
+**Database Connection Issues**
+- Verify MongoDB connection string
+- Check network connectivity
+- Ensure database user has proper permissions
+
+### Performance Optimization
+
+- Use Redis for session caching in production
+- Implement rate limiting for API endpoints
+- Configure proper database indexing
+- Use CDN for static assets
+- Monitor memory usage in AI processing
 
 ---
 
-**Built with ❤️ for smarter recruitment**
+## Contributors
 
-[![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/metis)
-[![Deploy to Railway](https://railway.app/button.svg)](https://railway.app/new/template)
+<a href="https://github.com/Ansh-dhanani/metis/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Ansh-dhanani/metis" />
+</a>
+
+---
+
+We would like to thank the following contributors for their valuable contributions to Metis:
+
+### Core Team
+
+- **Ansh** - Project Lead & Full-Stack Developer
+  - Frontend Architecture (Next.js, TypeScript, Tailwind CSS)
+  - Backend Development (Flask, Python, MongoDB)
+  - AI Integration (Groq API, LangGraph, Resume Parsing)
+  - System Design & Deployment
+
+### Contributors
+
+We welcome contributions from the community! See our [Contributing Guidelines](#contributing) to get started.
+
+---
+
+**Metis** - Transforming recruitment through intelligent automation.

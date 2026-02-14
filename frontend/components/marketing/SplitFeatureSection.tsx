@@ -1,51 +1,27 @@
-import { CheckCircle2 } from "lucide-react";
 import MagicBento from "@/components/MagicBento";
+import { Separator } from "../ui/separator";
 
 export default function SplitFeatureSection() {
   return (
     <section className="py-24">
-      <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 px-4 items-center">
-        {/* Visual/Demo Area */}
-        <div className="rounded-3xl bg-muted/50 min-h-[420px] flex items-center justify-center border border-border">
-          <div className="scale-75">
-            <MagicBento
-              enableStars={false}
-              enableSpotlight={true}
-              enableBorderGlow={true}
-              spotlightRadius={200}
-              particleCount={6}
-              enableTilt={false}
-              clickEffect={true}
-              enableMagnetism={false}
-            />
-          </div>
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="flex flex-row items-center mb-4">
+          <h2 className="text-sm font-semibold tracking-widest px-4 flex items-center gap-2 whitespace-nowrap">
+            Developer Experience
+          </h2>
+          <Separator className="flex-1" />
         </div>
-
-        {/* Content */}
-        <div className="space-y-6">
-          <h3 className="text-3xl md:text-4xl font-semibold">
-            Developer-first experience
-          </h3>
-
-          <p className="text-muted-foreground text-lg">
-            Built with developers in mind. Simple, powerful, and predictable.
-          </p>
-
-          <ul className="space-y-3">
-            <li className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <span className="text-muted-foreground">Simple REST & streaming APIs</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <span className="text-muted-foreground">SDKs for all major platforms</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <span className="text-muted-foreground">Rich documentation and examples</span>
-            </li>
-          </ul>
-        </div>
+        
+        <MagicBento
+          enableStars={false}
+          enableSpotlight={true}
+          enableBorderGlow={true}
+          spotlightRadius={200}
+          particleCount={6}
+          enableTilt={false}
+          clickEffect={true}
+          enableMagnetism={false}
+        />
       </div>
     </section>
   );

@@ -6,7 +6,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { authService } from '@/lib/api/services';
 import type { User } from '@/lib/api/types';
 
@@ -36,12 +36,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (session?.user) {
         // User is authenticated via OAuth
+        // Skip if they need role selection (incomplete registration)
+        if ((session.user as any)?.needsRoleSelection) {
+          setIsLoading(false);
+          return;
+        }
+        
         setUser({
           userId: session.user.id || '',
           email: session.user.email || '',
           firstName: session.user.name?.split(' ')[0] || '',
           lastName: session.user.name?.split(' ').slice(1).join(' ') || '',
           role: (session.user.role as 'hr' | 'candidate') || 'candidate',
+          image: session.user.image || undefined,
           createdAt: new Date().toISOString(),
         });
         setIsLoading(false);
@@ -71,15 +78,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [session, status]);
 
   const login = async (email: string, password: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _response = await authService.login({ email, password });
-    const userData = await authService.getProfile();
-    setUser(userData);
+    const response = await authService.login({ email, password });
+    
+    // Fetch full user profile after login
+    try {
+      const userData = await authService.getProfile();
+      setUser(userData);
+    } catch (error) {
+      console.error('Failed to fetch profile after login:', error);
+      // Even if profile fetch fails, user is logged in with tokens
+      setUser({
+        userId: response.userId,
+        email: email,
+        firstName: response.firstName || '',
+        lastName: response.lastName || '',
+        role: response.role,
+        createdAt: new Date().toISOString(),
+      });
+    }
   };
 
   const logout = async () => {
     await authService.logout();
     setUser(null);
+    
+    // Also sign out of NextAuth session if it exists
+    if (session) {
+      await signOut({ redirect: false });
+    }
   };
 
   const refreshUser = async () => {

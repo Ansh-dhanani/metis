@@ -27,7 +27,7 @@ type Step = 'upload' | 'review' | 'confirm' | 'complete';
 export default function JobApplicationPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const jobId = params?.id as string;
 
   const [job, setJob] = useState<Job | null>(null);
@@ -80,12 +80,20 @@ export default function JobApplicationPage() {
     } catch (error) {
       console.error('Failed to check applications:', error);
     }
-  }, [user, jobId]);
+  }, [user?.userId, jobId]); // Only depend on userId and jobId, not the whole user object
 
   useEffect(() => {
     fetchJobDetails();
+  }, [jobId]); // Only depend on jobId
+
+  useEffect(() => {
     checkExistingApplication();
-  }, [fetchJobDetails, checkExistingApplication]);
+  }, [user?.userId, jobId]); // Run when user or jobId changes
+
+  useEffect(() => {
+    // Refresh user data to get latest profile information on mount
+    refreshUser();
+  }, []); // Only run once on mount
 
   // Update profile data when user changes
   useEffect(() => {
@@ -98,15 +106,24 @@ export default function JobApplicationPage() {
       }));
 
       // Check if name is missing and warn user
-      if (!user.firstName || !user.lastName) {
-        toast.error('Please complete your profile first. Go to Profile page and add your name.', {
-          duration: 5000,
-          action: {
-            label: 'Go to Profile',
-            onClick: () => router.push('/dashboard/profile'),
-          },
-        });
-      }
+      // Add a small delay to ensure user data is fully loaded
+      const checkProfileCompletion = () => {
+        if (!user.firstName?.trim()) {
+          toast.error('Please complete your profile first. Go to Profile page and add your name.', {
+            duration: 5000,
+            action: {
+              label: 'Go to Profile',
+              onClick: () => router.push('/dashboard/profile'),
+            },
+          });
+        }
+      };
+
+      // Check immediately and after a short delay to handle async loading
+      checkProfileCompletion();
+      const timeoutId = setTimeout(checkProfileCompletion, 1000);
+
+      return () => clearTimeout(timeoutId);
     }
   }, [user?.firstName, user?.lastName, user?.email, router]);
 
@@ -172,7 +189,6 @@ export default function JobApplicationPage() {
     const errors: string[] = [];
     
     if (!profileData.firstName?.trim()) errors.push('First Name');
-    if (!profileData.lastName?.trim()) errors.push('Last Name');
     if (!profileData.email?.trim()) errors.push('Email');
     if (!profileData.phone?.trim()) errors.push('Phone');
     if (!profileData.skills || profileData.skills.length === 0) errors.push('Skills (at least one skill required)');
@@ -403,12 +419,9 @@ export default function JobApplicationPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                <div className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => document.getElementById('resume')?.click()}>
                   <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                   <div className="space-y-2">
-                    <Label htmlFor="resume" className="cursor-pointer text-primary hover:underline">
-                      Click to upload resume
-                    </Label>
                     <Input
                       id="resume"
                       type="file"
@@ -474,7 +487,7 @@ export default function JobApplicationPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="lastName">Last Name</Label>
                     <Input
                       id="lastName"
                       value={profileData.lastName}
