@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Logo } from "@/components/logo";
-import { useEffect } from "react";
 import DarkVeil from "@/components/DarkVeil";
 import { Button } from "@/components/ui/button";
 import ScrollVelocity from "@/components/ScrollVelocity";
@@ -27,7 +26,7 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
-import { Brain, Zap, Shield, Code } from "lucide-react";
+import { Brain, Zap, Shield, Code, BookOpen, HelpCircle, Book } from "lucide-react";
 
 function ListItem({
   title,
@@ -37,7 +36,7 @@ function ListItem({
   ...props
 }: React.ComponentPropsWithoutRef<"li"> & {
   href: string;
-  icon?: React.ReactNode;
+  icon?: React.ReactNode; 
 }) {
   return (
     <li {...props}>
@@ -65,10 +64,6 @@ function ListItem({
 }
 
 export default function LandingPage() {
-  useEffect(() => {
-    document.documentElement.classList.add("dark");
-  }, []);
-
   return (
     <div className="relative bg-background text-foreground overflow-hidden">
       <div
@@ -87,45 +82,52 @@ export default function LandingPage() {
           speed={0.5}
           scanlineFrequency={0}
           warpAmount={0}
-          resolutionScale={1.1}
+          resolutionScale={1}
         />
+        {/* Left blur overlay - blends DarkVeil into background */}
+        <div className="absolute left-0 top-0 h-full w-48 bg-gradient-to-r from-background via-background/80 to-transparent pointer-events-none z-10" />
+        {/* Right blur overlay - blends DarkVeil into background */}
+        <div className="absolute right-0 top-0 h-full w-48 bg-gradient-to-l from-background via-background/80 to-transparent pointer-events-none z-10" />
       </div>
 
       {/* Simplified Navigation */}
-      <nav className="fixed top-5 left-5 right-5 z-50 flex items-center justify-between px-8 py-4 bg-background/80 backdrop-blur-md border border-border/40 rounded-2xl">
+      <nav className="fixed top-5 left-5 right-5 z-50 flex items-center justify-between px-8 py-4 bg-background/80 backdrop-blur-md border border-border/40 rounded-2xl" style={{
+        maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)',
+        WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)'
+      }}>
         <Logo size="md" showText={true} />
 
         <NavigationMenu className="hidden md:flex">
-          <NavigationMenuList>
+          <NavigationMenuList className="flex items-center">
             <NavigationMenuItem>
-              <NavigationMenuTrigger>Product</NavigationMenuTrigger>
+              <NavigationMenuTrigger className="rounded-l-full pl-8">Product</NavigationMenuTrigger>
               <NavigationMenuContent>
-                <ul className="grid gap-2 p-4 w-[400px] md:w-[500px] md:grid-cols-2">
+                <ul className="grid gap-2 p-4 w-[400px] md:w-[500px] md:grid-cols-2 ">
                   <ListItem
                     href="#features"
                     title="AI Interviews"
-                    icon={<Brain className="h-4 w-4" />}
+                    icon={<Brain className="h-4 w-4 text-white" />}
                   >
                     Conduct intelligent interviews with advanced AI models.
                   </ListItem>
                   <ListItem
                     href="#showcase"
                     title="Real-time Analysis"
-                    icon={<Zap className="h-4 w-4" />}
+                    icon={<Zap className="h-4 w-4 text-white" />}
                   >
                     Get instant feedback and insights during conversations.
                   </ListItem>
                   <ListItem
                     href="#integrations"
                     title="Secure & Private"
-                    icon={<Shield className="h-4 w-4" />}
+                    icon={<Shield className="h-4 w-4 text-white" />}
                   >
                     Enterprise-grade security with SOC 2 compliance.
                   </ListItem>
                   <ListItem
                     href="#api"
                     title="Developer API"
-                    icon={<Code className="h-4 w-4" />}
+                    icon={<Code className="h-4 w-4 text-white" />}
                   >
                     Integrate with our powerful RESTful API.
                   </ListItem>
@@ -133,44 +135,44 @@ export default function LandingPage() {
               </NavigationMenuContent>
             </NavigationMenuItem>
 
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Resources</NavigationMenuTrigger>
+            <NavigationMenuItem >
+              <NavigationMenuTrigger className="rounded-none">Resources</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid gap-2 p-4 w-[300px]">
-                  <ListItem href="#docs" title="Documentation">
+                  <ListItem href="#docs" title="Documentation" icon={<BookOpen className="h-4 w-4 text-white" />}>
                     Complete guides and API references.
                   </ListItem>
-                  <ListItem href="#blog" title="Blog">
+                  <ListItem href="#blog" title="Blog" icon={<Book  className="h-4 w-4 text-white" />}>
                     Latest updates and best practices.
                   </ListItem>
-                  <ListItem href="#support" title="Support">
+                  <ListItem href="#support" title="Support" icon={<HelpCircle className="h-4 w-4 text-white" />}>
                     Get help from our expert team.
                   </ListItem>
                 </ul>
               </NavigationMenuContent>
             </NavigationMenuItem>
 
-            <NavigationMenuItem>
-              <Link href="#pricing" legacyBehavior passHref>
-                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+            <NavigationMenuItem >
+              <NavigationMenuLink  asChild className={navigationMenuTriggerStyle()}>
+                <Link href="#pricing" className="rounded-none">
                   Pricing
-                </NavigationMenuLink>
-              </Link>
+                </Link>
+              </NavigationMenuLink>
             </NavigationMenuItem>
 
             <NavigationMenuItem>
-              <Link href="#about" legacyBehavior passHref>
-                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+              <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+                <Link href="#about" className="rounded-r-full">
                   About
-                </NavigationMenuLink>
-              </Link>
+                </Link>
+              </NavigationMenuLink>
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
 
         <div className="flex items-center gap-4">
           <Link href="/login" className="hidden sm:block">
-            <Button variant="ghost" className="text-sm">
+            <Button variant="ghost" className="text-sm ">
               Sign In
             </Button>
           </Link>

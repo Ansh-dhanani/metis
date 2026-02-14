@@ -2,6 +2,7 @@ import BlurText from "@/components/BlurText";
 import Highlight from "@/components/ui/custom/higlight";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
+import GetStartedButton from "../ui/custom/get-started";
 
 export default function HeroArcSection() {
   return (
@@ -38,9 +39,7 @@ export default function HeroArcSection() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-          <Button size="lg" className="rounded-full px-8">
-            Join the waitlist
-          </Button>
+          <GetStartedButton/>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 pt-6 text-sm text-muted-foreground">

@@ -31,9 +31,6 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/logo.svg" type="image/svg+xml" />
         <meta name="description" content="Metis - AI-Powered Recruitment Assessment Platform" />
-        <script dangerouslySetInnerHTML={{
-          __html: `document.documentElement.classList.add('dark')`
-        }} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}
