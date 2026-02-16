@@ -68,7 +68,6 @@ export default function LoginPage() {
             Continue with Google
           </button>
         </div>
-        </div>
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">

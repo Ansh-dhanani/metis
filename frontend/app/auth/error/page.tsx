@@ -1,6 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
 
@@ -20,7 +21,8 @@ const errorMessages: Record<string, string> = {
   default: 'An authentication error occurred. Please try again.'
 };
 
-export default function AuthErrorPage() {
+
+function AuthErrorPageContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get('error') || 'default';
   const message = errorMessages[error] || errorMessages.default;
@@ -33,7 +35,6 @@ export default function AuthErrorPage() {
             <AlertCircle className="h-12 w-12 text-destructive" />
           </div>
         </div>
-        
         <div className="space-y-4">
           <h1 className="text-3xl font-bold tracking-tight">
             Authentication Error
@@ -42,7 +43,6 @@ export default function AuthErrorPage() {
             {message}
           </p>
         </div>
-
         <div className="flex flex-col gap-3">
           <Link
             href="/login"
@@ -57,7 +57,6 @@ export default function AuthErrorPage() {
             Go back home
           </Link>
         </div>
-
         {error !== 'default' && (
           <p className="text-xs text-muted-foreground mt-4">
             Error code: {error}
@@ -65,5 +64,13 @@ export default function AuthErrorPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense>
+      <AuthErrorPageContent />
+    </Suspense>
   );
 }

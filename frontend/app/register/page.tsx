@@ -34,15 +34,17 @@ function RegisterPageContent() {
   // Detect OAuth user and skip to step 2
   useEffect(() => {
     if (session?.user?.needsRoleSelection) {
-      setIsOAuthUser(true);
-      setStep(2);
-      // Pre-fill data from OAuth
-      setFormData(prev => ({
-        ...prev,
-        email: session.user.email || '',
-        firstName: session.user.name?.split(' ')[0] || '',
-        lastName: session.user.name?.split(' ').slice(1).join(' ') || '',
-      }));
+      queueMicrotask(() => {
+        setIsOAuthUser(true);
+        setStep(2);
+        // Pre-fill data from OAuth
+        setFormData(prev => ({
+          ...prev,
+          email: session.user.email || '',
+          firstName: session.user.name?.split(' ')[0] || '',
+          lastName: session.user.name?.split(' ').slice(1).join(' ') || '',
+        }));
+      });
     }
   }, [session]);
 
