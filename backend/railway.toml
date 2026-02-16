@@ -1,0 +1,29 @@
+# Railway Deployment Configuration for Metis Backend
+
+## This file helps Railway understand how to deploy your Flask app
+
+[build]
+builder = "NIXPACKS"
+
+[build.env]
+PYTHON_VERSION = "3.11"
+
+[deploy]
+startCommand = "python app.py"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+
+[env]
+# Flask configuration
+FLASK_ENV = "production"
+
+# These should be set in Railway dashboard as secrets:
+# - MONGO_URI (required)
+# - JWT_SECRET (required)
+# - FRONTEND_URL (optional, defaults to localhost)
+# - PRODUCTION_FRONTEND_URL (optional)
+
+[networking]
+# Railway will automatically assign a port via $PORT
+# The app reads this from environment

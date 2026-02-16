@@ -60,19 +60,60 @@ if not IS_VERCEL:
     )
 
 # MongoDB Configuration (with error handling)
+mongodb_status = {
+    "connected": False,
+    "error": None,
+    "database": None
+}
+
 try:
-    MONGO_URI = os.getenv("MONGO_URI", os.getenv("DATABASE_URL"))
+    MONGO_URI = os.getenv("MONGO_URI", os.getenv("MONGO_URL", os.getenv("DATABASE_URL")))
     if MONGO_URI:
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        # Configure MongoDB client with SSL/TLS settings
+        import ssl
+        
+        # Log sanitized URI (without password)
+        sanitized_uri = MONGO_URI.split('@')[1] if '@' in MONGO_URI else "URI not properly formatted"
+        print(f"🔌 Attempting MongoDB connection to: ...@{sanitized_uri}")
+        
+        client = MongoClient(
+            MONGO_URI,
+            serverSelectionTimeoutMS=30000,
+            connectTimeoutMS=30000,
+            socketTimeoutMS=30000,
+            tls=True,
+            tlsAllowInvalidCertificates=False
+        )
         # Test connection immediately
         client.admin.command('ping')
-        db = client['flask_db']
+        db = client['metis_db']
+        mongodb_status["connected"] = True
+        mongodb_status["database"] = "metis_db"
+        print("✅ MongoDB connected successfully")
+        print(f"📊 MongoDB database: {db.name}")
     else:
-        print("WARNING: No MONGO_URI found in environment")
+        print("⚠️ WARNING: No MONGO_URI, MONGO_URL, or DATABASE_URL found in environment")
+        print("💡 Set MONGO_URI in Railway variables or .env file")
+        mongodb_status["error"] = "No MONGO_URI environment variable"
         client = None
         db = None
 except Exception as e:
-    print(f"MongoDB connection error: {e}")
+    error_msg = str(e)
+    print(f"❌ MongoDB connection error: {error_msg}")
+    
+    # Provide helpful error messages
+    if "ServerSelectionTimeoutError" in error_msg or "timed out" in error_msg.lower():
+        print("💡 Tip: Add 0.0.0.0/0 to MongoDB Atlas Network Access allowlist")
+        mongodb_status["error"] = "Connection timeout - Check IP allowlist"
+    elif "Authentication failed" in error_msg or "auth" in error_msg.lower():
+        print("💡 Tip: Check MongoDB username/password in URI")
+        mongodb_status["error"] = "Authentication failed - Check credentials"
+    elif "SSL" in error_msg or "TLS" in error_msg:
+        print("💡 Tip: Ensure URI has tls=true parameter")
+        mongodb_status["error"] = "SSL/TLS error - Check connection parameters"
+    else:
+        mongodb_status["error"] = error_msg
+    
     client = None
     db = None
 
@@ -110,15 +151,38 @@ if not IS_VERCEL and socketio is not None:
 
 @app.route("/")
 def hello_world():
-    return {
+    response = {
         "status": "ok",
         "message": "Metis API is running",
-        "mongodb": "connected" if client else "disconnected"
+        "mongodb": "connected" if mongodb_status["connected"] else "disconnected",
+        "environment": os.getenv("FLASK_ENV", "development")
     }
+    
+    # Add more details if disconnected (for debugging)
+    if not mongodb_status["connected"]:
+        response["mongodb_error"] = mongodb_status["error"]
+        response["database"] = None
+        response["troubleshooting"] = {
+            "step1": "Check Railway Variables has MONGO_URI set",
+            "step2": "MongoDB Atlas → Network Access → Add 0.0.0.0/0",
+            "step3": "Ensure URI includes database name: /metis_db?...",
+            "step4": "Check Railway deployment logs for specific error"
+        }
+    else:
+        response["database"] = mongodb_status["database"]
+    
+    return response
 
 @app.route("/health")
 def health_check():
-    return {"status": "healthy"}, 200
+    health = {
+        "status": "healthy" if mongodb_status["connected"] else "degraded",
+        "mongodb": "connected" if mongodb_status["connected"] else "disconnected",
+        "timestamp": os.popen('date').read().strip() if os.name != 'nt' else "N/A"
+    }
+    
+    status_code = 200 if mongodb_status["connected"] else 503
+    return health, status_code
 
 if __name__ == "__main__":
     PORT = int(os.getenv("PORT", 5000))

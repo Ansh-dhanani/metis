@@ -1,113 +1,92 @@
 'use client';
 
-import { useState, useEffect, useMemo, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
-import { useAuth } from '@/contexts/auth-context';
 import { authService } from '@/lib/api/services';
 import { getErrorMessage } from '@/lib/utils/error-handler';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import type { UserRole } from '@/lib/api/types';
+import { signOut } from 'next-auth/react';
 
 function RegisterPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { data: session } = useSession();
-  const { user, isLoading: authLoading } = useAuth();
-  
-  // Initialize state based on OAuth/session data
-  const isOAuth = searchParams?.get('oauth') === 'true';
-  const initialIsOAuthUser = useMemo(() => {
-    if (isOAuth && session?.user && (session.user as any)?.needsRoleSelection) {
-      return true;
-    }
-    if (!authLoading && user && (user as any)?.needsRoleSelection) {
-      return true;
-    }
-    return false;
-  }, [isOAuth, session?.user, user, authLoading]);
-  
-  const initialStep = useMemo(() => {
-    if (initialIsOAuthUser) {
-      return 2;
-    }
-    return 1;
-  }, [initialIsOAuthUser]);
-  
-  const initialFormData = useMemo(() => {
-    const data = {
-      firstName: '',
-      lastName: '',
-      email: '',
-      password: '',
-      phone: '',
-      role: '' as UserRole | '',
-      linkedinUrl: '',
-      githubUrl: '',
-      portfolioUrl: '',
-    };
-    
-    if (initialIsOAuthUser) {
-      if (session?.user) {
-        data.email = session.user.email || '';
-        data.firstName = session.user.name?.split(' ')[0] || '';
-        data.lastName = session.user.name?.split(' ').slice(1).join(' ') || '';
-      } else if (user) {
-        data.email = user.email || '';
-        data.firstName = (user as any)?.name?.split(' ')[0] || '';
-        data.lastName = (user as any)?.name?.split(' ').slice(1).join(' ') || '';
-      }
-    }
-    
-    return data;
-  }, [initialIsOAuthUser, session?.user, user]);
-  
-  const [step, setStep] = useState(initialStep);
+  const { data: session, update } = useSession();
+  const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isOAuthUser, setIsOAuthUser] = useState(initialIsOAuthUser);
+  const [isOAuthUser, setIsOAuthUser] = useState(false);
   
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    phone: '',
+    role: '' as UserRole | '',
+    linkedinUrl: '',
+    githubUrl: '',
+    portfolioUrl: '',
+  });
 
-  // Check if user is already registered and redirect
+  // Detect OAuth user and skip to step 2
   useEffect(() => {
-    if (!authLoading && user) {
-      // Check if user has role, if not they need to complete registration
-      if (user.role && user.role !== 'pending' as any) {
-        router.push('/dashboard');
-      }
+    if (session?.user?.needsRoleSelection) {
+      setIsOAuthUser(true);
+      setStep(2);
+      // Pre-fill data from OAuth
+      setFormData(prev => ({
+        ...prev,
+        email: session.user.email || '',
+        firstName: session.user.name?.split(' ')[0] || '',
+        lastName: session.user.name?.split(' ').slice(1).join(' ') || '',
+      }));
     }
-  }, [user, authLoading, router]);
+  }, [session]);
 
-  if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
-        <div className="text-white">Loading...</div>
-      </div>
-    );
-  }
+  const handleOAuthSignUp = async (provider: 'google') => {
+    try {
+      setError('');
+      setIsLoading(true);
+      
+      const result = await signIn(provider, { 
+        redirect: false
+      });
+      
+      if (result?.error) {
+        setError(`Failed to sign up with ${provider}: ${result.error}`);
+        setIsLoading(false);
+      }
+      // OAuth user will be redirected by useEffect when session updates
+    } catch (error) {
+      console.error('OAuth error:', error);
+      setError('Failed to sign up. Please try again.');
+      setIsLoading(false);
+    }
+  };
 
-  const handleOAuthSignUp = async (provider: 'google' | 'linkedin') => {
-    setIsLoading(true);
-    // Store that we're coming from register page
-    sessionStorage.setItem('oauth_source', 'register');
-    await signIn(provider, { callbackUrl: '/register?oauth=true' });
+  const handleDisconnectProvider = async () => {
+    await signOut({ callbackUrl: '/register' });
   };
 
   const handleNext = () => {
     if (step === 1) {
-      // Skip validation for OAuth users since they don't need password
-      if (!isOAuthUser) {
-        if (!formData.email || !formData.password || !formData.firstName) {
-          setError('Please fill in all required fields');
-          return;
-        }
-        if (formData.password.length < 8) {
-          setError('Password must be at least 8 characters');
-          return;
-        }
+      // Skip validation for OAuth users
+      if (isOAuthUser) {
+        setError('');
+        setStep(step + 1);
+        return;
+      }
+      
+      if (!formData.email || !formData.password || !formData.firstName) {
+        setError('Please fill in all required fields');
+        return;
+      }
+      if (formData.password.length < 8) {
+        setError('Password must be at least 8 characters');
+        return;
       }
     }
     if (step === 2) {
@@ -129,19 +108,17 @@ function RegisterPageContent() {
     setError('');
 
     try {
-      if (isOAuthUser) {
-        // OAuth user completing registration - call oauth-register endpoint
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-        
-        const res = await fetch(`${apiUrl}/api/users/oauth-register`, {
+      if (isOAuthUser && session?.user) {
+        // OAuth user registration
+        const res = await fetch("/api/users/oauth-register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            email: formData.email,
-            name: `${formData.firstName} ${formData.lastName}`,
-            provider: (session?.user as any)?.provider || (user as any)?.provider,
-            providerId: (session?.user as any)?.providerId || (user as any)?.providerId,
-            image: (session?.user as any)?.image || (user as any)?.image,
+            email: session.user.email,
+            name: session.user.name,
+            provider: session.user.provider,
+            providerId: session.user.providerId,
+            image: session.user.image,
             role: formData.role,
             phone: formData.phone,
             linkedinUrl: formData.linkedinUrl,
@@ -152,17 +129,25 @@ function RegisterPageContent() {
 
         const data = await res.json();
 
-        if (res.ok) {
-          // Store auth tokens properly - use token if provided, otherwise user ID
-          const authToken = data.token || data.user._id || data.user.userId;
-          localStorage.setItem("authToken", authToken);
-          localStorage.setItem("userId", data.user._id || data.user.userId);
+        if (res.ok && data.user) {
+          // Update NextAuth session
+          await update({
+            ...session,
+            user: {
+              ...session.user,
+              id: data.user.id || data.user._id,
+              role: data.user.role,
+              needsRoleSelection: false
+            }
+          });
+          
+          // Store in localStorage
+          const userId = data.user.id || data.user._id;
+          localStorage.setItem("authToken", userId);
+          localStorage.setItem("userId", userId);
           localStorage.setItem("userRole", data.user.role);
-          localStorage.setItem("user", JSON.stringify(data.user));
           
           toast.success('Registration successful! Welcome to METIS.');
-          
-          // Redirect to dashboard immediately
           router.push('/dashboard');
         } else {
           setError(data.error || 'Registration failed');
@@ -190,8 +175,6 @@ function RegisterPageContent() {
         }
         
         toast.success('Registration successful! Welcome to METIS.');
-        
-        // Redirect to dashboard immediately
         router.push('/dashboard');
       }
     } catch (err) {
@@ -271,17 +254,7 @@ function RegisterPageContent() {
                     Google
                   </button>
                   
-                  <button
-                    type="button"
-                    onClick={() => handleOAuthSignUp('linkedin')}
-                    disabled={isLoading}
-                    className="flex-1 bg-transparent border border-[#333] text-white p-3 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all hover:bg-[#111] hover:border-[#555] disabled:opacity-50"
-                  >
-                    <svg viewBox="0 0 24 24" width={20} fill="white">
-                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-                    </svg>
-                    LinkedIn
-                  </button>
+                  {/* LinkedIn button removed */}
                 </div>
 
                 <div className="flex items-center text-[#666] text-[13px] mb-6">
@@ -378,9 +351,73 @@ function RegisterPageContent() {
             {step === 2 && (
               <>
                 <div className="mb-8">
-                  <div className="text-white text-[26px] font-semibold mb-2">Select Your Role</div>
-                  <div className="text-[#888] text-sm">Tell us about yourself and add optional details.</div>
+                  <div className="text-white text-[26px] font-semibold mb-2">
+                    {isOAuthUser ? 'Complete Your Registration' : 'Select Your Role'}
+                  </div>
+                  <div className="text-[#888] text-sm">
+                    {isOAuthUser ? 'Your account is connected. Choose your role to continue.' : 'Tell us about yourself and add optional details.'}
+                  </div>
                 </div>
+
+                {/* OAuth Account Display */}
+                {isOAuthUser && session?.user && (
+                  <div className="mb-6 rounded-lg border-2 border-green-500/30 bg-green-500/10 p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0">
+                        {session.user.image ? (
+                          <img 
+                            src={session.user.image} 
+                            alt="Profile" 
+                            className="h-12 w-12 rounded-full border-2 border-green-500/50"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                            <span className="text-green-400 font-semibold text-lg">
+                              {session.user.name?.charAt(0) || "U"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-green-400 flex items-center gap-1">
+                            {session.user.provider === "google" ? "Google" : "LinkedIn"} Connected
+                            <button
+                              type="button"
+                              onClick={handleDisconnectProvider}
+                              title="Disconnect"
+                              className="ml-1 p-1 rounded-full bg-white hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-400 border border-red-200"
+                              style={{ lineHeight: 0 }}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+                                <circle cx="10" cy="10" r="9" fill="#fff" fillOpacity="0.7"/>
+                                <path d="M7 7l6 6M13 7l-6 6" stroke="#e11d48" strokeWidth="2" strokeLinecap="round"/>
+                              </svg>
+                            </button>
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold text-white truncate">
+                          {session.user.name}
+                        </p>
+                        <p className="text-xs text-[#888] truncate">
+                          {session.user.email}
+                        </p>
+                      </div>
+                      {session.user.provider === "google" ? (
+                        <svg viewBox="0 0 24 24" className="h-8 w-8 flex-shrink-0">
+                          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" className="h-8 w-8 flex-shrink-0" fill="#0A66C2">
+                          <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {error && (
                   <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">
@@ -464,17 +501,19 @@ function RegisterPageContent() {
                 </div>
 
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => setStep(1)}
-                    disabled={isLoading}
-                    className="flex-1 bg-transparent text-white border border-[#333] p-4 rounded-lg font-semibold cursor-pointer transition-all hover:bg-[#111] hover:border-[#555] disabled:opacity-50 text-[15px]"
-                  >
-                    Back
-                  </button>
+                  {!isOAuthUser && (
+                    <button
+                      onClick={() => setStep(1)}
+                      disabled={isLoading}
+                      className="flex-1 bg-transparent text-white border border-[#333] p-4 rounded-lg font-semibold cursor-pointer transition-all hover:bg-[#111] hover:border-[#555] disabled:opacity-50 text-[15px]"
+                    >
+                      Back
+                    </button>
+                  )}
                   <button
                     onClick={handleNext}
                     disabled={isLoading}
-                    className="flex-1 bg-white text-black border-none p-4 rounded-lg font-semibold cursor-pointer transition-all hover:bg-[#e5e5e5] disabled:opacity-50 text-[15px]"
+                    className={`${isOAuthUser ? 'w-full' : 'flex-1'} bg-white text-black border-none p-4 rounded-lg font-semibold cursor-pointer transition-all hover:bg-[#e5e5e5] disabled:opacity-50 text-[15px]`}
                   >
                     Continue
                   </button>

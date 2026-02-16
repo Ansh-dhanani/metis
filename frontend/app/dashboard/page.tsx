@@ -20,9 +20,9 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Check if OAuth user needs to select role - redirect to register page
+    // Check if OAuth user needs to select role
     if (session?.user?.needsRoleSelection) {
-      router.push('/register?oauth=true');
+      router.push('/register');
     }
   }, [session, router]);
 

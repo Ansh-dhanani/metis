@@ -9,6 +9,7 @@ declare module "next-auth" {
     providerId?: string;
     provider?: string;
     token?: string;
+    image?: string;
   }
 
   interface Session {

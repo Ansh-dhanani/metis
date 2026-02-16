@@ -27,21 +27,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
 
   useEffect(() => {
-    // Check if user is authenticated on mount
     const initAuth = async () => {
-      // First check for NextAuth session (OAuth users)
+      // Wait for NextAuth session to load
       if (status === 'loading') {
-        return; // Wait for session to load
+        return;
       }
 
+      // Check NextAuth session first (OAuth users)
       if (session?.user) {
-        // User is authenticated via OAuth
-        // Skip if they need role selection (incomplete registration)
-        if ((session.user as any)?.needsRoleSelection) {
+        // Skip incomplete OAuth registrations
+        if (session.user.needsRoleSelection) {
           setIsLoading(false);
           return;
         }
         
+        // Map NextAuth session to auth context user
         setUser({
           userId: session.user.id || '',
           email: session.user.email || '',
@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Fall back to localStorage auth (email/password users)
+      // Fall back to localStorage (email/password users)
       const currentUser = authService.getCurrentUser();
       if (currentUser) {
         try {
@@ -63,14 +63,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(userData);
         } catch (error) {
           console.error('Failed to fetch user profile:', error);
-          // Don't logout on profile fetch errors - user might still be valid
-          // Only clear if it's an authentication error (401)
+          // Only clear auth on 401 errors
           if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
             authService.logout();
             setUser(null);
           }
         }
       }
+      
       setIsLoading(false);
     };
 

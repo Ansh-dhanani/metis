@@ -24,24 +24,36 @@ export default function LoginPage() {
     // Wait for both session and auth context to finish loading
     if (status === 'loading' || authLoading) return;
     
-    // Only redirect if user is actually authenticated in auth-context
-    // This prevents redirect loops after logout
-    if (status === 'authenticated' && session?.user && isAuthenticated) {
+    if (status === 'authenticated' && session?.user) {
       if (session.user.needsRoleSelection) {
-        // New OAuth user - redirect to register
-        router.push('/register?oauth=true');
-      } else if (session.user.role && session.user.role !== 'pending') {
+        // New OAuth user - redirect to register page for role selection
+        router.push('/register');
+      } else if (isAuthenticated && session.user.role) {
         // Existing user - go to dashboard
         router.push('/dashboard');
       }
     }
   }, [session, status, isAuthenticated, authLoading, router]);
 
-  const handleOAuthSignIn = async (provider: 'google' | 'linkedin') => {
-    setIsLoading(true);
-    // Store that we're coming from login page
-    sessionStorage.setItem('oauth_source', 'login');
-    await signIn(provider, { callbackUrl: '/dashboard' });
+  const handleOAuthSignIn = async (provider: 'google') => {
+    try {
+      setError('');
+      setIsLoading(true);
+      
+      const result = await signIn(provider, { 
+        redirect: false
+      });
+      
+      if (result?.error) {
+        setError(`Failed to sign in with ${provider}: ${result.error}`);
+        setIsLoading(false);
+      }
+      // Let the useEffect handle redirection based on session state
+    } catch (error) {
+      console.error('OAuth error:', error);
+      setError('Failed to sign in. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,17 +131,7 @@ export default function LoginPage() {
                 Google
               </button>
               
-              <button
-                type="button"
-                onClick={() => handleOAuthSignIn('linkedin')}
-                disabled={isLoading}
-                className="flex-1 bg-transparent border border-[#333] text-white p-3 rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all hover:bg-[#111] hover:border-[#555] disabled:opacity-50"
-              >
-                <svg viewBox="0 0 24 24" width={20} fill="white">
-                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-                </svg>
-                LinkedIn
-              </button>
+              {/* LinkedIn button removed */}
             </div>
 
             <div className="flex items-center text-[#666] text-[13px] mb-5">

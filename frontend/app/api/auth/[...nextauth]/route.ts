@@ -16,27 +16,47 @@ const handler = NextAuth({
           access_type: "offline",
           response_type: "code"
         }
-      }
-    }),
-
-    // LinkedIn OAuth
-    LinkedInProvider({
-      clientId: process.env.LINKEDIN_CLIENT_ID!,
-      clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope: "openid profile email"
-        }
       },
       profile(profile) {
         return {
-          id: profile.sub,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture
+          id: profile.sub || profile.id,
+          name: profile.name || profile.given_name || profile.displayName || "",
+          email: profile.email || profile.emails?.[0]?.value || "",
+          image: profile.picture || profile.avatar_url || profile.image || profile.photos?.[0]?.value || null
         };
       }
     }),
+
+    // Custom LinkedIn OIDC Provider
+    {
+      id: "linkedin",
+      name: "LinkedIn",
+      type: "oauth",
+      wellKnown: "https://www.linkedin.com/oauth/.well-known/openid-configuration",
+      clientId: process.env.LINKEDIN_CLIENT_ID!,
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
+      authorization: {
+        url: "https://www.linkedin.com/oauth/v2/authorization",
+        params: { scope: "openid profile email" }
+      },
+      token: {
+        url: "https://www.linkedin.com/oauth/v2/accessToken",
+        params: {
+          client_id: process.env.LINKEDIN_CLIENT_ID!,
+          client_secret: process.env.LINKEDIN_CLIENT_SECRET!
+        }
+      },
+      userinfo: "https://api.linkedin.com/v2/userinfo",
+      issuer: "https://www.linkedin.com/oauth",
+      profile(profile) {
+        return {
+          id: profile.sub || profile.id,
+          name: profile.name || [profile.given_name, profile.family_name].filter(Boolean).join(" ") || "",
+          email: profile.email,
+          image: profile.picture || null
+        };
+      }
+    },
 
     // Keep existing email/password authentication
     CredentialsProvider({
@@ -95,10 +115,15 @@ const handler = NextAuth({
             body: JSON.stringify({ email: user.email })
           });
 
+          if (!checkRes.ok) {
+            console.error("Failed to check email:", await checkRes.text());
+            return `/auth/error?error=server_error`;
+          }
+
           const checkData = await checkRes.json();
 
           if (checkData.exists) {
-            // User exists - get their full data
+            // Existing user - authenticate them
             const res = await fetch(`${apiUrl}/api/users/oauth-login`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -114,27 +139,27 @@ const handler = NextAuth({
             const data = await res.json();
             
             if (res.ok && data.user) {
-              // Set user data that will be stored in JWT token
-              user.id = data.user.id;
+              user.id = data.user.id || data.user._id;
               user.role = data.user.role;
               user.needsRoleSelection = false;
+              user.image = user.image || data.user.image;
               return true;
             }
             
             console.error("OAuth login failed:", data);
-            return false;
+            return `/auth/error?error=oauth_login_failed`;
           } else {
-            // New user - mark as needing registration/role selection
-            user.id = "pending";
-            user.role = "pending";
+            // New user - need role selection
             user.needsRoleSelection = true;
             user.provider = account.provider;
             user.providerId = account.providerAccountId;
+            // Preserve profile image from OAuth provider
+            user.image = typeof user.image === "string" ? user.image : (typeof profile?.image === "string" ? profile.image : undefined);
             return true;
           }
         } catch (error) {
           console.error("OAuth sign-in error:", error);
-          return false;
+          return `/auth/error?error=network_error`;
         }
       }
 
@@ -142,17 +167,16 @@ const handler = NextAuth({
     },
 
     async jwt({ token, user, account }) {
-      // Persist user data to token
+      // Persist user data to token on initial sign-in
       if (user) {
-        token.id = user.id;
-        token.role = user.role || "candidate";
-        token.provider = account?.provider;
-        token.providerId = user.providerId || account?.providerAccountId;
-        token.needsRoleSelection = user.needsRoleSelection || false;
-        token.email = user.email || undefined;
-        token.authToken = user.token || user.id;
-        token.name = user.name || undefined;
-        token.image = user.image || undefined;
+        token.id = typeof user.id === "string" ? user.id : (typeof token.sub === "string" ? token.sub : "");
+        token.role = typeof user.role === "string" ? user.role : "";
+        token.provider = typeof account?.provider === "string" ? account.provider : undefined;
+        token.providerId = typeof user.providerId === "string" ? user.providerId : (typeof account?.providerAccountId === "string" ? account.providerAccountId : undefined);
+        token.needsRoleSelection = user.needsRoleSelection === true;
+        token.email = typeof user.email === "string" ? user.email : undefined;
+        token.name = typeof user.name === "string" ? user.name : undefined;
+        token.image = typeof user.image === "string" ? user.image : undefined;
       }
       return token;
     },
@@ -160,22 +184,23 @@ const handler = NextAuth({
     async session({ session, token }) {
       // Add custom properties to session
       if (session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role || "candidate";
-        session.user.provider = token.provider || "";
-        session.user.providerId = token.providerId;
-        session.user.needsRoleSelection = token.needsRoleSelection;
-        session.user.image = token.image;
+        session.user.id = typeof token.id === "string" ? token.id : "";
+        session.user.role = typeof token.role === "string" ? token.role : "";
+        session.user.provider = typeof token.provider === "string" ? token.provider : undefined;
+        session.user.providerId = typeof token.providerId === "string" ? token.providerId : undefined;
+        session.user.needsRoleSelection = token.needsRoleSelection === true;
+        session.user.image = typeof token.image === "string" ? token.image : undefined;
       }
       return session;
     },
 
     async redirect({ url, baseUrl }) {
-      // Handle OAuth new user redirect - send them to register page step 2
-      if (url.includes('needsRoleSelection=true')) {
-        return `${baseUrl}/register?oauth=true`;
+      // Handle auth errors
+      if (url.includes('/auth/error')) {
+        return url;
       }
-      // Default behavior
+      
+      // Default behavior: respect callbackUrl or go to dashboard
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       else if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
