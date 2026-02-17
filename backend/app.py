@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -5,13 +6,20 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 from werkzeug.exceptions import HTTPException
 
-# Check if running on Vercel (serverless)
-IS_VERCEL = os.getenv('VERCEL') == '1' or os.getenv('VERCEL_ENV') is not None
-
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'), override=True)
+if os.path.exists(os.path.join(os.path.dirname(__file__), '.env.local')):
+    load_dotenv(os.path.join(os.path.dirname(__file__), '.env.local'), override=True)
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False  # Disable strict trailing slash enforcement
+
+# Detect environment
+env = os.getenv('FLASK_ENV', 'development')
+IS_PRODUCTION = env == 'production'
+IS_VERCEL = os.getenv('VERCEL') == '1' or os.getenv('VERCEL_ENV') is not None
+
+print(f"🛠️  Environment: {env.upper()}")
+print(f"📁 Root directory: {os.path.abspath(os.path.dirname(__file__))}")
 
 # Global error handler to always return JSON for HTTP errors
 @app.errorhandler(HTTPException)
@@ -24,63 +32,69 @@ def handle_http_exception(e):
     response.content_type = "application/json"
     return response, e.code
 
+# Catch-all for non-HTTP exceptions
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Pass through HTTP errors
+    if isinstance(e, HTTPException):
+        return e
 
-# Debug: log every incoming request (method, path, remote addr)
+    # Now you're handling non-HTTP exceptions only
+    print(f"🔥 UNCAUGHT ERROR: {str(e)}")
+    import traceback
+    traceback.print_exc()
+    return jsonify({
+        "error": f"Internal Server Error: {str(e)}",
+        "type": type(e).__name__
+    }), 500
+
+
 @app.before_request
-def log_request_info():
-    try:
-        print(f"[INCOMING] {request.method} {request.path} from {request.remote_addr}")
-    except Exception:
-        pass
+def log_request():
+    print(f"🚀 {request.method} {request.path}")
 
-# Production configuration
-IS_PRODUCTION = os.getenv('FLASK_ENV') == 'production'
+
 
 if IS_PRODUCTION and not IS_VERCEL:
     try:
         from config.production import configure_production
         configure_production(app)
-    except Exception:
-        pass
+        print("🔒 Production configuration applied (Security headers & Rate limiting)")
+    except Exception as e:
+        print(f"⚠️ Error applying production config: {e}")
 
 # CORS Configuration
-frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-production_url = os.getenv('PRODUCTION_FRONTEND_URL', 'https://metis-hire.vercel.app')
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:5000"
+]
 
-# More permissive CORS for development
-if IS_PRODUCTION:
-    CORS(app, resources={
-        r"/api/*": {
-            "origins": [
-                frontend_url,
-                production_url,
-                "https://metis-hire.vercel.app",
-                "https://*.vercel.app"
-            ],
-            "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
-            "supports_credentials": True
-        }
-    })
-    print(f"[CORS] Production CORS setup: {frontend_url}, {production_url}")
-else:
-    # Development: Allow all origins and log setup
-    CORS(app, 
-         origins="*",
-         methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-         allow_headers=["Content-Type", "Authorization"],
-         supports_credentials=False)
-    print("[CORS] Development CORS setup: Allow all origins and methods")
+CORS(app, 
+     origins=allowed_origins,
+     supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
-# Initialize SocketIO only when NOT on Vercel (serverless doesn't support WebSockets)
+# Force clear HSTS for local development
+@app.after_request
+def clear_hsts(response):
+    if not IS_PRODUCTION:
+        response.headers['Strict-Transport-Security'] = 'max-age=0'
+    return response
+
+# Initialize SocketIO (Needed for live interviews)
 socketio = None
 if not IS_VERCEL:
-    from flask_socketio import SocketIO
-    socketio = SocketIO(
-        app, 
-        cors_allowed_origins=[frontend_url, production_url, "https://*.vercel.app"],
-        async_mode='threading'
-    )
+    try:
+        from flask_socketio import SocketIO
+        socketio = SocketIO(
+            app, 
+            cors_allowed_origins=allowed_origins,
+            async_mode='threading'
+        )
+    except Exception as e:
+        print(f"⚠️ SocketIO initialization failed: {e}")
+
 
 # MongoDB Configuration (with error handling)
 mongodb_status = {
@@ -139,6 +153,7 @@ except Exception as e:
     
     client = None
     db = None
+    # Removed raise to prevent server crash on startup
 
 
 from routes.jobs import jobs_bp
@@ -177,24 +192,13 @@ def hello_world():
     response = {
         "status": "ok",
         "message": "Metis API is running",
+        "version": "1.0.6",
+        "timestamp": "2024-02-17 21:35:00",
+        "env": env.upper(),
         "mongodb": "connected" if mongodb_status["connected"] else "disconnected",
-        "environment": os.getenv("FLASK_ENV", "development")
     }
-    
-    # Add more details if disconnected (for debugging)
-    if not mongodb_status["connected"]:
-        response["mongodb_error"] = mongodb_status["error"]
-        response["database"] = None
-        response["troubleshooting"] = {
-            "step1": "Check Railway Variables has MONGO_URI set",
-            "step2": "MongoDB Atlas → Network Access → Add 0.0.0.0/0",
-            "step3": "Ensure URI includes database name: /metis_db?...",
-            "step4": "Check Railway deployment logs for specific error"
-        }
-    else:
-        response["database"] = mongodb_status["database"]
-    
-    return response
+    return jsonify(response)
+
 
 
 @app.route('/debug/routes')
@@ -221,14 +225,9 @@ def health_check():
     return health, status_code
 
 if __name__ == "__main__":
-    PORT = int(os.getenv("PORT", 5000))
-    DEBUG = os.getenv('FLASK_ENV') != 'production'
-    
-    if DEBUG:
-        print(f"🚀 Development server starting on http://0.0.0.0:{PORT}")
-        print(f"📡 WebSocket server ready for live interviews")
-    else:
-        app.logger.info(f"Production server starting on port {PORT}")
+    PORT = 5000
+    DEBUG = True
+    print(f"🚀 NUCLEAR START: http://localhost:{PORT}")
     
     if socketio:
         socketio.run(app, host='0.0.0.0', port=PORT, debug=DEBUG, allow_unsafe_werkzeug=True)

@@ -47,9 +47,6 @@ async function request<T>(
     const token = localStorage.getItem('authToken');
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
-      console.log('[API] Using authToken:', token.substring(0, 10) + '...');
-    } else {
-      console.warn('[API] No authToken found in localStorage');
     }
   }
 
@@ -63,7 +60,7 @@ async function request<T>(
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
       let errorData: any = {};
-      
+
       try {
         errorData = await response.json();
         errorMessage = errorData.error || errorData.message || errorMessage;
@@ -71,13 +68,13 @@ async function request<T>(
         // If JSON parsing fails, use status text
         console.error('[API] Failed to parse error response:', e);
       }
-      
+
       console.error(`[API] Request failed: ${url}`, {
         status: response.status,
         message: errorMessage,
         data: errorData
       });
-      
+
       throw new APIError(
         errorMessage,
         response.status,
