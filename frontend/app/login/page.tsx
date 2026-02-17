@@ -64,6 +64,8 @@ export default function LoginPage() {
     try {
       // First, call the backend directly to get the token
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      console.debug('Login API URL:', apiUrl);
+
       const res = await fetch(`${apiUrl}/api/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,7 +75,14 @@ export default function LoginPage() {
         }),
       });
 
-      const data = await res.json();
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        const text = await res.text().catch(() => '<non-text response>');
+        console.error('Non-JSON response from login:', res.status, text);
+        throw new Error(`Login failed: ${res.status} ${text}`);
+      }
 
       if (res.ok && data.token) {
         // Store tokens in localStorage FIRST
@@ -92,9 +101,11 @@ export default function LoginPage() {
       } else {
         setError(data.error || 'Invalid email or password');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Login error:', err);
-      setError('An error occurred. Please try again.');
+      // Show better error message when possible
+      const message = err?.message || String(err) || 'An error occurred. Please try again.';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
