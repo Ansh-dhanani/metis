@@ -112,7 +112,8 @@ function RegisterPageContent() {
     try {
       if (isOAuthUser && session?.user) {
         // OAuth user registration
-        const res = await fetch("/api/users/oauth-register", {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+        const res = await fetch(`${apiUrl}/api/users/oauth-register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

@@ -1,8 +1,9 @@
 import os
-from flask import Flask
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from werkzeug.exceptions import HTTPException
 
 # Check if running on Vercel (serverless)
 IS_VERCEL = os.getenv('VERCEL') == '1' or os.getenv('VERCEL_ENV') is not None
@@ -11,6 +12,26 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '.env'), override=True)
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False  # Disable strict trailing slash enforcement
+
+# Global error handler to always return JSON for HTTP errors
+@app.errorhandler(HTTPException)
+def handle_http_exception(e):
+    response = e.get_response()
+    # Replace the body with JSON
+    response.data = jsonify({
+        "error": e.description or "An unexpected error occurred. Please try again or contact support."
+    }).data
+    response.content_type = "application/json"
+    return response, e.code
+
+
+# Debug: log every incoming request (method, path, remote addr)
+@app.before_request
+def log_request_info():
+    try:
+        print(f"[INCOMING] {request.method} {request.path} from {request.remote_addr}")
+    except Exception:
+        pass
 
 # Production configuration
 IS_PRODUCTION = os.getenv('FLASK_ENV') == 'production'
@@ -173,6 +194,19 @@ def hello_world():
     
     return response
 
+
+@app.route('/debug/routes')
+def debug_routes():
+    """Return a list of registered routes for debugging."""
+    rules = []
+    for rule in app.url_map.iter_rules():
+        rules.append({
+            'rule': str(rule),
+            'endpoint': rule.endpoint,
+            'methods': sorted(list(rule.methods))
+        })
+    return jsonify({'routes': rules}), 200
+
 @app.route("/health")
 def health_check():
     health = {
@@ -195,6 +229,6 @@ if __name__ == "__main__":
         app.logger.info(f"Production server starting on port {PORT}")
     
     if socketio:
-        socketio.run(app, host='0.0.0.0', port=PORT, debug=DEBUG)
+        socketio.run(app, host='0.0.0.0', port=PORT, debug=DEBUG, allow_unsafe_werkzeug=True)
     else:
         app.run(host='0.0.0.0', port=PORT, debug=DEBUG)
