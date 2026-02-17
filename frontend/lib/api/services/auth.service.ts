@@ -19,7 +19,7 @@ export const authService = {
     console.log('[AuthService] Registering user:', { email: data.email, role: data.role });
     const response = await api.post<RegisterResponse>('/api/users/register', data);
     console.log('[AuthService] Registration response:', response);
-    
+
     // Store auth token if provided
     if (response.token && typeof window !== 'undefined') {
       localStorage.setItem('authToken', response.token);
@@ -27,7 +27,7 @@ export const authService = {
       localStorage.setItem('userRole', response.role);
       console.log('[AuthService] Stored auth tokens in localStorage');
     }
-    
+
     return response;
   },
 
@@ -38,7 +38,7 @@ export const authService = {
     console.log('[AuthService] Logging in user:', data.email);
     const response = await api.post<LoginResponse>('/api/users/login', data);
     console.log('[AuthService] Login response:', response);
-    
+
     // Store auth token if provided
     if (response.token && typeof window !== 'undefined') {
       localStorage.setItem('authToken', response.token);
@@ -46,7 +46,7 @@ export const authService = {
       localStorage.setItem('userRole', response.role);
       console.log('[AuthService] Stored auth tokens in localStorage');
     }
-    
+
     return response;
   },
 
@@ -59,6 +59,23 @@ export const authService = {
       localStorage.removeItem('userId');
       localStorage.removeItem('userRole');
     }
+  },
+
+  /**
+   * Register a new user via OAuth
+   */
+  oauthRegister: async (data: any): Promise<any> => {
+    console.log('[AuthService] Completing OAuth registration:', { email: data.email, role: data.role });
+    const response = await api.post<any>('/api/users/oauth-register', data);
+
+    // Store auth token if provided
+    if (response.token && typeof window !== 'undefined') {
+      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('userId', response.user?.id || response.user?._id || response.token);
+      localStorage.setItem('userRole', response.user?.role || data.role);
+    }
+
+    return response;
   },
 
   /**
@@ -82,12 +99,12 @@ export const authService = {
     // Send file as FormData to backend for parsing
     const formData = new FormData();
     formData.append('file', file);
-    
+
     // Use fetch directly for FormData (api.post might not handle it correctly)
     const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    
+
     console.log('Uploading resume:', file.name, 'Token:', token ? 'present' : 'missing');
-    
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://metis-im23.vercel.app'}/api/users/upload-resume`, {
       method: 'POST',
       headers: {
@@ -114,12 +131,12 @@ export const authService = {
    */
   getCurrentUser: (): { userId: string; role: string } | null => {
     if (typeof window === 'undefined') return null;
-    
+
     const userId = localStorage.getItem('userId');
     const role = localStorage.getItem('userRole');
-    
+
     if (!userId || !role) return null;
-    
+
     return { userId, role };
   },
 

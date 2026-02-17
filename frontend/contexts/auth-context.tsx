@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsLoading(false);
           return;
         }
-        
+
         // Map NextAuth session to auth context user
         setUser({
           userId: session.user.id || '',
@@ -63,14 +63,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(userData);
         } catch (error) {
           console.error('Failed to fetch user profile:', error);
-          // Only clear auth on 401 errors
-          if (error && typeof error === 'object' && 'status' in error && error.status === 401) {
+          // Clear auth on 401 (Unauthorized) or 404 (User not found)
+          if (error && typeof error === 'object' && 'status' in error && (error.status === 401 || error.status === 404)) {
+            console.warn('[AuthContext] Session invalid (401/404), clearing...');
             authService.logout();
             setUser(null);
           }
         }
       }
-      
+
       setIsLoading(false);
     };
 
@@ -79,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const response = await authService.login({ email, password });
-    
+
     // Fetch full user profile after login
     try {
       const userData = await authService.getProfile();
@@ -101,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     await authService.logout();
     setUser(null);
-    
+
     // Also sign out of NextAuth session if it exists
     if (session) {
       await signOut({ redirect: false });

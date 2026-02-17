@@ -265,6 +265,7 @@ def manage_profile():
     
     user = db.users.find_one({"_id": ObjectId(token)})
     if not user:
+        print(f"🕵️ [PROFILE] User not found in DB with ID: {token}")
         return jsonify({"error": "User not found"}), 404
     
     if request.method == 'GET':

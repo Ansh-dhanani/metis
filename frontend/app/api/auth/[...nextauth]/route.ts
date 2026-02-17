@@ -68,7 +68,7 @@ const handler = NextAuth({
       async authorize(credentials) {
         try {
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-          
+
           // Call your Flask backend login API
           const res = await fetch(`${apiUrl}/api/users/login`, {
             method: "POST",
@@ -107,7 +107,7 @@ const handler = NextAuth({
       if (account?.provider === "google" || account?.provider === "linkedin") {
         try {
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-          
+
           // Check if user already exists in backend
           const checkRes = await fetch(`${apiUrl}/api/users/check-email`, {
             method: "POST",
@@ -137,7 +137,7 @@ const handler = NextAuth({
             });
 
             const data = await res.json();
-            
+
             if (res.ok && data.user) {
               user.id = data.user.id || data.user._id;
               user.role = data.user.role;
@@ -145,7 +145,7 @@ const handler = NextAuth({
               user.image = user.image || data.user.image;
               return true;
             }
-            
+
             console.error("OAuth login failed:", data);
             return `/auth/error?error=oauth_login_failed`;
           } else {
@@ -166,7 +166,17 @@ const handler = NextAuth({
       return true;
     },
 
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
+      // Handle session updates
+      if (trigger === "update" && session?.user) {
+        if (session.user.id) token.id = session.user.id;
+        if (session.user.role) token.role = session.user.role;
+        if (session.user.needsRoleSelection !== undefined) {
+          token.needsRoleSelection = session.user.needsRoleSelection;
+        }
+        return token;
+      }
+
       // Persist user data to token on initial sign-in
       if (user) {
         token.id = typeof user.id === "string" ? user.id : (typeof token.sub === "string" ? token.sub : "");
@@ -199,7 +209,7 @@ const handler = NextAuth({
       if (url.includes('/auth/error')) {
         return url;
       }
-      
+
       // Default behavior: respect callbackUrl or go to dashboard
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       else if (new URL(url).origin === baseUrl) return url;

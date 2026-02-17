@@ -9,16 +9,18 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import type { UserRole } from '@/lib/api/types';
 import { signOut } from 'next-auth/react';
+import { useAuth } from '@/contexts/auth-context';
 
 function RegisterPageContent() {
   const router = useRouter();
   const { data: session, update } = useSession();
+  const { refreshUser } = useAuth();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isOAuthUser, setIsOAuthUser] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -52,11 +54,11 @@ function RegisterPageContent() {
     try {
       setError('');
       setIsLoading(true);
-      
-      const result = await signIn(provider, { 
+
+      const result = await signIn(provider, {
         redirect: false
       });
-      
+
       if (result?.error) {
         setError(`Failed to sign up with ${provider}: ${result.error}`);
         setIsLoading(false);
@@ -81,7 +83,7 @@ function RegisterPageContent() {
         setStep(step + 1);
         return;
       }
-      
+
       if (!formData.email || !formData.password || !formData.firstName) {
         setError('Please fill in all required fields');
         return;
@@ -112,27 +114,20 @@ function RegisterPageContent() {
     try {
       if (isOAuthUser && session?.user) {
         // OAuth user registration
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-        const res = await fetch(`${apiUrl}/api/users/oauth-register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: session.user.email,
-            name: session.user.name,
-            provider: session.user.provider,
-            providerId: session.user.providerId,
-            image: session.user.image,
-            role: formData.role,
-            phone: formData.phone,
-            linkedinUrl: formData.linkedinUrl,
-            githubUrl: formData.githubUrl,
-            portfolioUrl: formData.portfolioUrl,
-          })
+        const data = await authService.oauthRegister({
+          email: session.user.email,
+          name: session.user.name,
+          provider: session.user.provider,
+          providerId: session.user.providerId,
+          image: session.user.image,
+          role: formData.role,
+          phone: formData.phone,
+          linkedinUrl: formData.linkedinUrl,
+          githubUrl: formData.githubUrl,
+          portfolioUrl: formData.portfolioUrl,
         });
 
-        const data = await res.json();
-
-        if (res.ok && data.user) {
+        if (data.user) {
           // Update NextAuth session
           await update({
             ...session,
@@ -143,17 +138,14 @@ function RegisterPageContent() {
               needsRoleSelection: false
             }
           });
-          
-          // Store in localStorage
-          const userId = data.user.id || data.user._id;
-          localStorage.setItem("authToken", userId);
-          localStorage.setItem("userId", userId);
-          localStorage.setItem("userRole", data.user.role);
-          
+
+          // Sync AuthContext immediately
+          await refreshUser();
+
           toast.success('Registration successful! Welcome to METIS.');
           router.push('/dashboard');
         } else {
-          setError(data.error || 'Registration failed');
+          setError('Registration failed: Invalid response from server');
           setIsLoading(false);
         }
       } else {
@@ -169,16 +161,28 @@ function RegisterPageContent() {
           githubUrl: formData.githubUrl,
           portfolioUrl: formData.portfolioUrl,
         });
-        
-        // Store auth tokens from response
+        // Store auth tokens from response (optional, but NextAuth should handle session)
         if (registerResponse.token) {
           localStorage.setItem('authToken', registerResponse.token);
           localStorage.setItem('userId', registerResponse.userId);
           localStorage.setItem('userRole', registerResponse.role);
         }
-        
-        toast.success('Registration successful! Welcome to METIS.');
-        router.push('/dashboard');
+        // Automatically sign in the user after registration
+        const signInResult = await signIn('credentials', {
+          redirect: false,
+          email: formData.email,
+          password: formData.password,
+        });
+        if (signInResult && !signInResult.error) {
+          // Sync AuthContext immediately
+          await refreshUser();
+
+          toast.success('Registration successful! Welcome to METIS.');
+          router.push('/dashboard');
+        } else {
+          setError('Registration succeeded, but automatic login failed. Please log in manually.');
+          setIsLoading(false);
+        }
       }
     } catch (err) {
       setError(getErrorMessage(err) || 'Registration failed');
@@ -192,11 +196,11 @@ function RegisterPageContent() {
         {/* Left Panel */}
         <div className="flex-[1_1_340px] relative bg-gradient-to-br from-[#d8b4fe] via-[#7e22ce] to-black p-10 flex flex-col justify-between min-h-[450px]">
           <div className="absolute inset-0 opacity-60 mix-blend-overlay pointer-events-none"
-               style={{
-                 backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E\")"
-               }}
+            style={{
+              backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E\")"
+            }}
           />
-          
+
           <div className="relative z-[2] flex items-center gap-3 font-semibold text-lg">
             <svg width={24} height={24} viewBox="0 0 24 24" fill="none">
               <circle cx={12} cy={12} r={9} stroke="white" strokeWidth={2} />
@@ -210,18 +214,18 @@ function RegisterPageContent() {
             <div className="text-white/70 mb-8 text-[15px]">
               Complete these easy steps to register your account.
             </div>
-            
+
             <div className="flex flex-col gap-3">
               <div className={`flex items-center gap-3 p-3 rounded-xl transition-all ${step === 1 ? 'bg-white text-black shadow-lg' : 'bg-white/10 border border-white/5'}`}>
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step === 1 ? 'bg-black text-white' : 'bg-white/20'}`}>1</div>
                 <span className="text-sm">Create your account</span>
               </div>
-              
+
               <div className={`flex items-center gap-3 p-3 rounded-xl transition-all ${step === 2 ? 'bg-white text-black shadow-lg' : 'bg-white/10 border border-white/5'}`}>
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step === 2 ? 'bg-black text-white' : 'bg-white/20'}`}>2</div>
                 <span className="text-sm">Select role & add details</span>
               </div>
-              
+
               <div className={`flex items-center gap-3 p-3 rounded-xl transition-all ${step === 3 ? 'bg-white text-black shadow-lg' : 'bg-white/10 border border-white/5'}`}>
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step === 3 ? 'bg-black text-white' : 'bg-white/20'}`}>3</div>
                 <span className="text-sm">Start using Metis</span>
@@ -256,7 +260,7 @@ function RegisterPageContent() {
                     </svg>
                     Google
                   </button>
-                  
+
                   {/* LinkedIn button removed */}
                 </div>
 
@@ -368,9 +372,9 @@ function RegisterPageContent() {
                     <div className="flex items-center space-x-3">
                       <div className="flex-shrink-0">
                         {session.user.image ? (
-                          <img 
-                            src={session.user.image} 
-                            alt="Profile" 
+                          <img
+                            src={session.user.image}
+                            alt="Profile"
                             className="h-12 w-12 rounded-full border-2 border-green-500/50"
                           />
                         ) : (
@@ -393,8 +397,8 @@ function RegisterPageContent() {
                               style={{ lineHeight: 0 }}
                             >
                               <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
-                                <circle cx="10" cy="10" r="9" fill="#fff" fillOpacity="0.7"/>
-                                <path d="M7 7l6 6M13 7l-6 6" stroke="#e11d48" strokeWidth="2" strokeLinecap="round"/>
+                                <circle cx="10" cy="10" r="9" fill="#fff" fillOpacity="0.7" />
+                                <path d="M7 7l6 6M13 7l-6 6" stroke="#e11d48" strokeWidth="2" strokeLinecap="round" />
                               </svg>
                             </button>
                           </p>
@@ -434,11 +438,10 @@ function RegisterPageContent() {
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, role: 'candidate' })}
-                      className={`flex-1 p-4 rounded-lg border-2 transition-all ${
-                        formData.role === 'candidate'
-                          ? 'bg-white text-black border-white'
-                          : 'bg-transparent text-white border-[#333] hover:border-[#555]'
-                      }`}
+                      className={`flex-1 p-4 rounded-lg border-2 transition-all ${formData.role === 'candidate'
+                        ? 'bg-white text-black border-white'
+                        : 'bg-transparent text-white border-[#333] hover:border-[#555]'
+                        }`}
                     >
                       <div className="font-semibold">Candidate</div>
                       <div className="text-xs opacity-70 mt-1">Looking for opportunities</div>
@@ -446,11 +449,10 @@ function RegisterPageContent() {
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, role: 'hr' })}
-                      className={`flex-1 p-4 rounded-lg border-2 transition-all ${
-                        formData.role === 'hr'
-                          ? 'bg-white text-black border-white'
-                          : 'bg-transparent text-white border-[#333] hover:border-[#555]'
-                      }`}
+                      className={`flex-1 p-4 rounded-lg border-2 transition-all ${formData.role === 'hr'
+                        ? 'bg-white text-black border-white'
+                        : 'bg-transparent text-white border-[#333] hover:border-[#555]'
+                        }`}
                     >
                       <div className="font-semibold">Recruiter</div>
                       <div className="text-xs opacity-70 mt-1">Hiring talent</div>
