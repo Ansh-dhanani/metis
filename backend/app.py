@@ -62,13 +62,15 @@ if IS_PRODUCTION:
             "supports_credentials": True
         }
     })
+    print(f"[CORS] Production CORS setup: {frontend_url}, {production_url}")
 else:
-    # Development: Allow all origins
+    # Development: Allow all origins and log setup
     CORS(app, 
          origins="*",
          methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
          allow_headers=["Content-Type", "Authorization"],
          supports_credentials=False)
+    print("[CORS] Development CORS setup: Allow all origins and methods")
 
 # Initialize SocketIO only when NOT on Vercel (serverless doesn't support WebSockets)
 socketio = None
