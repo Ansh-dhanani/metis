@@ -1,42 +1,56 @@
-# Frontend Dockerfile
+# ============================================================
+# Metis Hire — Frontend Dockerfile
+# Node 20 / Next.js 16 (standalone output)
+# ============================================================
+
 FROM node:20-alpine AS base
-
-# Install dependencies only when needed
-FROM base AS deps
 RUN apk add --no-cache libc6-compat
+
+# ── Stage 1: Install dependencies ───────────────────────────
+FROM base AS deps
 WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm install --legacy-peer-deps --ignore-scripts
 
-# Install dependencies based on the preferred package manager
-COPY package.json bun.lock* ./
-RUN npm install -g bun && bun install --frozen-lockfile
-
-# Rebuild the source code only when needed
+# ── Stage 2: Build ──────────────────────────────────────────
 FROM base AS builder
 WORKDIR /app
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build the application
-ENV NEXT_TELEMETRY_DISABLED 1
-RUN npm install -g bun && bun run build
+# NEXT_PUBLIC_* and auth variables are inlined at build time by Next.js.
+# Pass these as build args and set as ENV.
+ARG NEXT_PUBLIC_API_URL=http://localhost:5000
+ARG NEXT_PUBLIC_WS_URL=http://localhost:5000
+ARG NEXTAUTH_URL=http://localhost:3000
+ARG NEXTAUTH_SECRET=default-secret-change-in-production
 
-# Production image, copy all the files and run next
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+ENV NEXTAUTH_URL=$NEXTAUTH_URL
+ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN npm run build
+
+# ── Stage 3: Production runner ───────────────────────────────
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Least-privilege user
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
 
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+# Prerender cache directory — owned by the app user
+RUN mkdir .next && chown nextjs:nodejs .next
 
-# Automatically leverage output traces to reduce image size
+# Leverage Next.js standalone output to keep the image lean
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
@@ -44,7 +58,7 @@ USER nextjs
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]

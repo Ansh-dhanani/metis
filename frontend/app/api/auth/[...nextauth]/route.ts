@@ -67,7 +67,9 @@ const handler = NextAuth({
       },
       async authorize(credentials) {
         try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+          // Use 'backend' (Docker service name) for server-side requests
+          // Use NEXT_PUBLIC_API_URL for client-side requests
+          const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
           // Call your Flask backend login API
           const res = await fetch(`${apiUrl}/api/users/login`, {
@@ -106,7 +108,8 @@ const handler = NextAuth({
       // When signing in with OAuth providers, check if user exists
       if (account?.provider === "google" || account?.provider === "linkedin") {
         try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+          // Use 'backend' service name for server-side requests inside Docker
+          const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
           // Check if user already exists in backend
           const checkRes = await fetch(`${apiUrl}/api/users/check-email`, {

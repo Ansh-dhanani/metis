@@ -3,7 +3,6 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { Toaster } from "sonner";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next"
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -38,7 +37,6 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <Providers>
-          <Analytics />
           {children}
         </Providers>
         <Toaster position="top-right" richColors closeButton />
