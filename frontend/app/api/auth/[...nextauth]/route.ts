@@ -71,6 +71,8 @@ const handler = NextAuth({
   callbacks: {
     async signIn({ user, account }: { user?: User; account?: Account | null }): Promise<boolean | string> {
       // When signing in with OAuth providers, check if user exists
+      if (!user) return false;
+      
       if (account?.provider && ["google", "github"].includes(account.provider)) {
         try {
           // Use 'backend' service name for server-side requests inside Docker
