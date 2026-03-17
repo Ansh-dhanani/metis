@@ -1,52 +1,235 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+# ============================================================
+# Metis Hire - Git Ignore
+# Prevents committing sensitive files, dependencies, and artifacts
+# ============================================================
 
-# Flask
-instance/
-.webassets-cache
-
-# Environment
+# ── ENVIRONMENT VARIABLES (SENSITIVE - NEVER COMMIT) ──────────
 .env
 .env.local
-.env.production
 .env.*.local
+backend/.env
+backend/.env.local
+backend/.env.*.local
+frontend/.env.local
+frontend/.env.*.local
+.env.production
+.env.*.production
 
-# Logs
+# ── BACKEND - Python & Flask ─────────────────────────────────
+backend/__pycache__/
+backend/*.py[cod]
+backend/*.pyo
+backend/*.pyd
+backend/*$py.class
+backend/*.so
+backend/.Python
+backend/build/
+backend/develop-eggs/
+backend/dist/
+backend/downloads/
+backend/eggs/
+backend/.eggs/
+backend/lib/
+backend/lib64/
+backend/parts/
+backend/sdist/
+backend/var/
+backend/wheels/
+backend/pip-wheel-metadata/
+backend/*.egg-info/
+backend/.installed.cfg
+backend/*.egg
+backend/MANIFEST
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/.tox/
+backend/.hypothesis/
+backend/.mypy_cache/
+backend/.dmypy.json
+backend/dmypy.json
+backend/.pyre/
+backend/instance/
+backend/.webassets-cache
+
+# ── BACKEND - Virtual Environments ────────────────────────────
+backend/.venv
+backend/venv/
+backend/env/
+backend/ENV/
+backend/env.bak/
+backend/venv.bak/
+
+# ── BACKEND - Runtime & Artifacts ────────────────────────────
+backend/uploads/
+backend/logs/
+backend/*.log
+backend/.gunicorn*
+backend/gunicorn.ctl
+backend/instance/
+
+# ── FRONTEND - Node & Next.js ────────────────────────────────
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/dist/
+frontend/build/
+frontend/.vercel
+frontend/.vercel/
+frontend/coverage/
+frontend/.nyc_output/
+
+# ── FRONTEND - NPM/Yarn Logs ─────────────────────────────────
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+
+# ── GENERAL - Logs ───────────────────────────────────────────
 logs/
 *.log
+*.logs
+.logs/
 
-# IDE
+# ── GENERAL - IDE & Editor Files ─────────────────────────────
 .vscode/
+.vscode/*
+!.vscode/extensions.json
 .idea/
+.idea/*
+!.idea/misc.xml
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
+.vim/
+.emacs.d/
+*.iml
 
-# OS
+# ── GENERAL - OS Files ────────────────────────────────────────
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ── DOCKER ────────────────────────────────────────────────────
+# Usually committed but ignore runtime artifacts
+docker-compose.override.yml
+.dockerignore
+
+# ── GIT ───────────────────────────────────────────────────────
+.git/
+.github/
+.gitattributes
+
+# ── TEMP & CACHE FILES ────────────────────────────────────────
+*.tmp
+*.temp
+*.bak
+*.cache
+tmp/
+temp/
+.cache/
+
+# ── DATABASE & EXPORTS ────────────────────────────────────────
+*.sql
+*.dump
+*.backup
+*.db
+*.sqlite
+*.sqlite3
+
+# ── CERTIFICATES & KEYS (SENSITIVE) ──────────────────────────
+*.key
+*.pem
+*.cert
+*.crt
+id_rsa
+id_rsa.pub
+*.pth
+*.pfx
+
+# ── DEPLOYMENT CONFIG (if contains secrets) ──────────────────
+# Uncomment only if these files contain sensitive data:
+# railway.json
+# railway.toml
+# vercel.json (usually OK to commit)
+
+# ── MACOS ─────────────────────────────────────────────────────
+.AppleDouble
+.LSOverride
+._*
+.apdisk
+.TemporaryItems
+
+# ── LINUX ─────────────────────────────────────────────────────
+.*~
+.directory
+
+# ── WINDOWS ───────────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+$RECYCLE.BIN/
+*.lnk
+
+# ── VERSION CONTROL BACKUP FILES ─────────────────────────────
+*.orig
+*.rej
+
+# ── PYTHON SPECIFIC ──────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.tox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.mypy_cache/
+.pytest_cache/
+*.egg-info/
+
+# ── NODE SPECIFIC ─────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+yarn-integrity
+.npm/
+.eslintcache
+
+# ── TESTING ──────────────────────────────────────────────────
+.coverage
+coverage/
+htmlcov/
+.tox/
+.pytest_cache/
+dist/
+build/
+
+# ── MISCELLANEOUS ────────────────────────────────────────────
+.history/
+.python_history
+.bash_history
+.zsh_history
+.node_repl_history
+
+# ── KEEP EMPTY DIRECTORIES ───────────────────────────────────
+# Use .gitkeep to preserve empty but important directories
+!.gitkeep
+
 
 # Testing
 .pytest_cache/
