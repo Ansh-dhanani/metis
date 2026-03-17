@@ -1,62 +1,27 @@
-import NextAuth from "next-auth";
+import NextAuth, { type NextAuthOptions, type Session } from "next-auth";
+import { type JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
-import LinkedInProvider from "next-auth/providers/linkedin";
+import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
+import type { User } from "next-auth";
+import type { Account } from "next-auth";
 
 const handler = NextAuth({
   providers: [
+
     // Google OAuth
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope: "openid email profile",
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code"
-        }
-      },
-      profile(profile) {
-        return {
-          id: profile.sub || profile.id,
-          name: profile.name || profile.given_name || profile.displayName || "",
-          email: profile.email || profile.emails?.[0]?.value || "",
-          image: profile.picture || profile.avatar_url || profile.image || profile.photos?.[0]?.value || null
-        };
-      }
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      allowDangerousEmailAccountLinking: true,
     }),
 
-    // Custom LinkedIn OIDC Provider
-    {
-      id: "linkedin",
-      name: "LinkedIn",
-      type: "oauth",
-      wellKnown: "https://www.linkedin.com/oauth/.well-known/openid-configuration",
-      clientId: process.env.LINKEDIN_CLIENT_ID!,
-      clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
-      authorization: {
-        url: "https://www.linkedin.com/oauth/v2/authorization",
-        params: { scope: "openid profile email" }
-      },
-      token: {
-        url: "https://www.linkedin.com/oauth/v2/accessToken",
-        params: {
-          client_id: process.env.LINKEDIN_CLIENT_ID!,
-          client_secret: process.env.LINKEDIN_CLIENT_SECRET!
-        }
-      },
-      userinfo: "https://api.linkedin.com/v2/userinfo",
-      issuer: "https://www.linkedin.com/oauth",
-      profile(profile) {
-        return {
-          id: profile.sub || profile.id,
-          name: profile.name || [profile.given_name, profile.family_name].filter(Boolean).join(" ") || "",
-          email: profile.email,
-          image: profile.picture || null
-        };
-      }
-    },
+    // GitHub OAuth (optional but included for completeness)
+    ...(process.env.GITHUB_CLIENT_ID ? [GitHubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
+      allowDangerousEmailAccountLinking: true,
+    })] : []),
 
     // Keep existing email/password authentication
     CredentialsProvider({
@@ -65,7 +30,7 @@ const handler = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials: Record<string, unknown> | undefined): Promise<User | null> {
         try {
           // Use 'backend' (Docker service name) for server-side requests
           // Use NEXT_PUBLIC_API_URL for client-side requests
@@ -104,9 +69,9 @@ const handler = NextAuth({
   ],
 
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }: { user?: User; account?: Account | null }): Promise<boolean | string> {
       // When signing in with OAuth providers, check if user exists
-      if (account?.provider === "google" || account?.provider === "linkedin") {
+      if (account?.provider && ["google", "github"].includes(account.provider)) {
         try {
           // Use 'backend' service name for server-side requests inside Docker
           const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -156,8 +121,6 @@ const handler = NextAuth({
             user.needsRoleSelection = true;
             user.provider = account.provider;
             user.providerId = account.providerAccountId;
-            // Preserve profile image from OAuth provider
-            user.image = typeof user.image === "string" ? user.image : (typeof profile?.image === "string" ? profile.image : undefined);
             return true;
           }
         } catch (error) {
@@ -169,7 +132,13 @@ const handler = NextAuth({
       return true;
     },
 
-    async jwt({ token, user, account, trigger, session }) {
+    async jwt({ token, user, account, trigger, session }: {
+      token: JWT;
+      user?: User;
+      account?: Account | null;
+      trigger?: string;
+      session?: Session;
+    }): Promise<JWT> {
       // Handle session updates
       if (trigger === "update" && session?.user) {
         if (session.user.id) token.id = session.user.id;
@@ -194,7 +163,7 @@ const handler = NextAuth({
       return token;
     },
 
-    async session({ session, token }) {
+    async session({ session, token }: { session: Session; token: JWT }): Promise<Session> {
       // Add custom properties to session
       if (session.user) {
         session.user.id = typeof token.id === "string" ? token.id : "";
@@ -207,7 +176,7 @@ const handler = NextAuth({
       return session;
     },
 
-    async redirect({ url, baseUrl }) {
+    async redirect({ url, baseUrl }: { url: string; baseUrl: string }): Promise<string> {
       // Handle auth errors
       if (url.includes('/auth/error')) {
         return url;
