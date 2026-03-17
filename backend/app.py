@@ -25,7 +25,6 @@ print(f"📁 Root directory: {os.path.abspath(os.path.dirname(__file__))}")
 @app.errorhandler(HTTPException)
 def handle_http_exception(e):
     response = e.get_response()
-    # Replace the body with JSON
     response.data = jsonify({
         "error": e.description or "An unexpected error occurred. Please try again or contact support."
     }).data
@@ -35,11 +34,9 @@ def handle_http_exception(e):
 # Catch-all for non-HTTP exceptions
 @app.errorhandler(Exception)
 def handle_exception(e):
-    # Pass through HTTP errors
     if isinstance(e, HTTPException):
         return e
 
-    # Now you're handling non-HTTP exceptions only
     print(f"🔥 UNCAUGHT ERROR: {str(e)}")
     import traceback
     traceback.print_exc()
@@ -54,7 +51,6 @@ def log_request():
     print(f"🚀 {request.method} {request.path}")
 
 
-
 if IS_PRODUCTION and not IS_VERCEL:
     try:
         from config.production import configure_production
@@ -63,17 +59,41 @@ if IS_PRODUCTION and not IS_VERCEL:
     except Exception as e:
         print(f"⚠️ Error applying production config: {e}")
 
-# CORS Configuration
+# ── CORS Configuration ────────────────────────────────────────
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://metis-hire-1.onrender.com")
+
 allowed_origins = [
     "http://localhost:3000",
-    "http://localhost:5000"
+    "http://localhost:5000",
+    "https://metis-hire-1.onrender.com",
+    FRONTEND_URL,  # picks up env var dynamically
 ]
 
-CORS(app, 
+# Remove duplicates
+allowed_origins = list(set(allowed_origins))
+
+print(f"🌐 Allowed CORS origins: {allowed_origins}")
+
+CORS(app,
      origins=allowed_origins,
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+
+# Handle preflight OPTIONS requests explicitly
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = app.make_default_options_response()
+        origin = request.headers.get("Origin", "")
+        if origin in allowed_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        return response
+
+# ─────────────────────────────────────────────────────────────
 
 # Force clear HSTS for local development
 @app.after_request
@@ -88,7 +108,7 @@ if not IS_VERCEL:
     try:
         from flask_socketio import SocketIO
         socketio = SocketIO(
-            app, 
+            app,
             cors_allowed_origins=allowed_origins,
             async_mode='threading'
         )
@@ -106,13 +126,11 @@ mongodb_status = {
 try:
     MONGO_URI = os.getenv("MONGO_URI", os.getenv("MONGO_URL", os.getenv("DATABASE_URL")))
     if MONGO_URI:
-        # Configure MongoDB client with SSL/TLS settings
         import ssl
-        
-        # Log sanitized URI (without password)
+
         sanitized_uri = MONGO_URI.split('@')[1] if '@' in MONGO_URI else "URI not properly formatted"
         print(f"🔌 Attempting MongoDB connection to: ...@{sanitized_uri}")
-        
+
         client = MongoClient(
             MONGO_URI,
             serverSelectionTimeoutMS=30000,
@@ -121,7 +139,6 @@ try:
             tls=True,
             tlsAllowInvalidCertificates=False
         )
-        # Test connection immediately
         client.admin.command('ping')
         db = client['metis_db']
         mongodb_status["connected"] = True
@@ -130,15 +147,13 @@ try:
         print(f"📊 MongoDB database: {db.name}")
     else:
         print("⚠️ WARNING: No MONGO_URI, MONGO_URL, or DATABASE_URL found in environment")
-        print("💡 Set MONGO_URI in Railway variables or .env file")
         mongodb_status["error"] = "No MONGO_URI environment variable"
         client = None
         db = None
 except Exception as e:
     error_msg = str(e)
     print(f"❌ MongoDB connection error: {error_msg}")
-    
-    # Provide helpful error messages
+
     if "ServerSelectionTimeoutError" in error_msg or "timed out" in error_msg.lower():
         print("💡 Tip: Add 0.0.0.0/0 to MongoDB Atlas Network Access allowlist")
         mongodb_status["error"] = "Connection timeout - Check IP allowlist"
@@ -150,10 +165,9 @@ except Exception as e:
         mongodb_status["error"] = "SSL/TLS error - Check connection parameters"
     else:
         mongodb_status["error"] = error_msg
-    
+
     client = None
     db = None
-    # Removed raise to prevent server crash on startup
 
 
 from routes.jobs import jobs_bp
@@ -165,7 +179,6 @@ from routes.applications import applications_bp
 from routes.evaluation import evaluation_bp
 from routes.advanced_ranking import advanced_ranking_bp
 
-# Register blueprints with error handling
 try:
     app.register_blueprint(jobs_bp, url_prefix='/api/jobs')
     app.register_blueprint(assessments_bp, url_prefix='/api/assessments')
@@ -178,7 +191,6 @@ try:
 except Exception as e:
     print(f"Error registering blueprints: {e}")
 
-# Initialize SocketIO handlers only when not on Vercel
 if not IS_VERCEL and socketio is not None:
     try:
         from routes.live_interview import live_interview_bp, init_socketio
@@ -200,10 +212,8 @@ def hello_world():
     return jsonify(response)
 
 
-
 @app.route('/debug/routes')
 def debug_routes():
-    """Return a list of registered routes for debugging."""
     rules = []
     for rule in app.url_map.iter_rules():
         rules.append({
@@ -220,7 +230,6 @@ def health_check():
         "mongodb": "connected" if mongodb_status["connected"] else "disconnected",
         "timestamp": os.popen('date').read().strip() if os.name != 'nt' else "N/A"
     }
-    
     status_code = 200 if mongodb_status["connected"] else 503
     return health, status_code
 
@@ -228,7 +237,7 @@ if __name__ == "__main__":
     PORT = 5000
     DEBUG = True
     print(f"🚀 NUCLEAR START: http://localhost:{PORT}")
-    
+
     if socketio:
         socketio.run(app, host='0.0.0.0', port=PORT, debug=DEBUG, allow_unsafe_werkzeug=True)
     else:
