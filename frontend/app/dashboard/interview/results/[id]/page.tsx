@@ -45,7 +45,7 @@ export default function InterviewResultsPage() {
 
   const fetchResults = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://metis-im23.vercel.app'}/api/applications/${applicationId}`, {
+      const response = await fetch(`${config.apiUrl}/api/applications/${applicationId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },

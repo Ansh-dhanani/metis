@@ -252,9 +252,24 @@ def evaluate_interview_endpoint(application_id):
             return jsonify({"error": "Job not found"}), 404
         
         # Get interview transcript
-        interview = db.interviews.find_one({"applicationId": ObjectId(application_id)})
+        # applicationId may be stored as string OR ObjectId depending on when interview was created
+        application_id_str = str(application_id)
+        interview = db.interviews.find_one({
+            "$or": [
+                {"applicationId": application_id_str},
+                {"applicationId": ObjectId(application_id_str)},
+            ]
+        })
+        
         if not interview:
-            return jsonify({"error": "No interview found for this application"}), 404
+            # Fallback: find by candidateId + jobId (for older interviews without applicationId)
+            interview = db.interviews.find_one({
+                "candidateId": str(application.get('candidateId', '')),
+                "jobId": str(application.get('jobId', ''))
+            })
+        
+        if not interview:
+            return jsonify({"error": "No interview found for this application. Please complete the live interview first."}), 404
         
         if interview.get('status') != 'completed':
             return jsonify({"error": "Interview not completed yet"}), 400

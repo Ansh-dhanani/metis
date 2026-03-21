@@ -80,9 +80,7 @@ def login():
             print(f"[LOGIN] User not found with email: {email}")
             return jsonify({"error": "Invalid credentials - user not found"}), 401
         
-        print(f"[LOGIN] User found: {email}, checking password...")
-        print(f"[LOGIN] Stored password: {user_check.get('password')}")
-        print(f"[LOGIN] Provided password: {password}")
+        print(f"[LOGIN] User found: {email}, verifying credentials...")
         
         # Check password
         user = db.users.find_one({"email": email, "password": password})

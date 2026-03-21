@@ -46,7 +46,11 @@ export default function InterviewPage() {
   const [textInput, setTextInput] = useState('');
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [finalScore, setFinalScore] = useState<number | null>(null);
-  
+  // Track live socket connection & server-confirmed session state
+  const [isConnected, setIsConnected] = useState(false);
+  const [isSessionReady, setIsSessionReady] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -103,51 +107,123 @@ export default function InterviewPage() {
     }
   };
 
-  useEffect(() => {
-    // Connect to WebSocket
-    const newSocket = io(config.wsUrl);
+  const connectSocket = () => {
+    // Disconnect existing socket if any
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+
+    setConnectionError(null);
+    setIsConnected(false);
+
+    const newSocket = io(config.wsUrl, {
+      reconnectionDelayMax: 10000,
+      reconnectionDelay: 1000,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      forceNew: true,
+      transports: ['websocket', 'polling'], // fallback to polling if WS fails
+      timeout: 20000,
+    });
+
     socketRef.current = newSocket;
 
-    // Listen for AI responses
+    // Connection event handlers
+    newSocket.on('connect', () => {
+      console.log('✅ WebSocket connected:', newSocket.id);
+      setIsConnected(true);
+      setConnectionError(null);
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('❌ WebSocket connection error:', error);
+      setIsConnected(false);
+      setConnectionError('Could not connect to interview server. Please retry.');
+      toast.error('Connection error. Click "Retry Connection" to try again.');
+    });
+
+    newSocket.on('reconnect_attempt', (attempt) => {
+      console.log(`🔄 Reconnect attempt #${attempt}...`);
+    });
+
+    newSocket.on('reconnect_failed', () => {
+      setConnectionError('Could not reconnect after multiple attempts. Please retry.');
+      toast.error('Connection failed. Please click "Retry Connection".');
+    });
+
+    // Server confirmed the interview session is active
+    newSocket.on('session_started', (data: any) => {
+      console.log('✅ Interview session started on server:', data);
+      setIsSessionReady(true); // Only allow sending answers once server confirms
+      toast.success('Interview session ready! The AI is preparing your first question...');
+    });
+
+    // AI text response — arrives immediately
     newSocket.on('ai_response', (data: any) => {
+      console.log('📝 AI Response received:', data.questionNumber);
       setMessages(prev => [...prev, {
         role: 'ai',
         text: data.text,
         audio: data.audio,
         timestamp: new Date()
       }]);
-      
+
       setCurrentQuestion(data.questionNumber || 0);
       setIsProcessing(false);
-      
-      // Auto-play AI audio
+
+      // Play audio if it came bundled (fallback for when async audio is disabled)
       if (data.audio) {
         playAudio(data.audio);
       }
-      
+
       // Check if interview is complete
       if (data.isComplete) {
         handleInterviewComplete();
       }
     });
 
-    // Listen for transcriptions
+    // Listen for transcriptions (primarily for AUDIO mode)
+    // For text mode, messages are added optimistically in sendText()
     newSocket.on('user_transcript', (data: any) => {
-      setMessages(prev => [...prev, {
-        role: 'user',
-        text: data.text,
-        timestamp: new Date()
-      }]);
+      if (!data.text) return;
+      console.log('📢 User transcript received:', data.text.substring(0, 50));
+      setMessages(prev => {
+        // Skip if the last message is already this exact text (text-mode optimistic render)
+        const last = prev[prev.length - 1];
+        if (last && last.role === 'user' && last.text === data.text) {
+          return prev; // already shown
+        }
+        return [...prev, {
+          role: 'user',
+          text: data.text,
+          timestamp: new Date()
+        }];
+      });
     });
 
     newSocket.on('error', (error: any) => {
-      toast.error(error.message || 'Interview error occurred');
+      console.error('❌ Interview error:', error);
+      const errorMsg = typeof error === 'string' ? error : (error.message || 'Interview error occurred');
+      toast.error(errorMsg || 'Interview error occurred');
       setIsProcessing(false);
     });
 
+    newSocket.on('disconnect', (reason: any) => {
+      console.log('🔌 WebSocket disconnected:', reason);
+      setIsConnected(false);
+      setIsSessionReady(false); // Reset so we re-confirm session on reconnect
+      if (reason !== 'io client namespace disconnect') {
+        toast.warning('Connection lost. Attempting to reconnect...');
+      }
+    });
+  };
+
+  useEffect(() => {
+    connectSocket();
     return () => {
-      newSocket.disconnect();
+      socketRef.current?.disconnect();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -159,8 +235,31 @@ export default function InterviewPage() {
 
   const startInterview = async () => {
     if (!socketRef.current) return;
+    if (interviewStarted) {
+      toast.warning('Interview already started. Please wait for the current session.');
+      return;
+    }
 
     try {
+      // Check if interview service is available
+      const statusCheck = await fetch(`${config.apiUrl}/api/live-interview/status`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      }).catch(err => {
+        console.warn('Could not check interview status:', err);
+        return null;
+      });
+
+      if (statusCheck && statusCheck.ok) {
+        const status = await statusCheck.json();
+        console.log('Interview service status:', status);
+        if (!status.interview_service_available) {
+          toast.error('Interview service is unavailable. Please try again later or contact support.');
+          return;
+        }
+      }
+
       // Fetch job details and application data
       const [jobResponse, appResponse] = await Promise.all([
         fetch(`${config.apiUrl}/api/jobs/${jobId}`, {
@@ -175,8 +274,23 @@ export default function InterviewPage() {
         })
       ]);
 
+      // Validate API responses before parsing
+      if (!jobResponse.ok) {
+        toast.error(`Could not load job details (${jobResponse.status}). Please go back and try again.`);
+        return;
+      }
+      if (!appResponse.ok) {
+        toast.error(`Could not load application data (${appResponse.status}). Please go back and try again.`);
+        return;
+      }
+
       const job = await jobResponse.json();
       const application = await appResponse.json();
+
+      if (!job.description) {
+        toast.error('Job description is missing. Cannot start interview without it.');
+        return;
+      }
 
       // Build candidate context from resume/application data
       const candidateContext = `
@@ -189,10 +303,19 @@ Resume Summary:
 - Projects: ${JSON.stringify(application.profileSnapshot?.projects || [])}
       `.trim();
 
+      // Log the data being sent for debugging
+      console.log('Starting interview with:', {
+        jobId,
+        applicationId,
+        candidateId: user?.userId,
+        socketConnected: socketRef.current?.connected,
+        socketId: socketRef.current?.id
+      });
+
       // Start interview via WebSocket with full context
       socketRef.current?.emit('start_interview', {
         jobId,
-        applicationId,
+        applicationId,  // IMPORTANT: Include applicationId
         candidateId: user?.userId,
         candidateName: `${user?.firstName} ${user?.lastName}`,
         jdText: job.description,
@@ -202,8 +325,8 @@ Resume Summary:
       setInterviewStarted(true);
       toast.success('Interview started! AI will ask 10 contextual questions based on your resume.');
     } catch (error) {
-      toast.error('Failed to start interview');
-      console.error(error);
+      console.error('Error starting interview:', error);
+      toast.error('Failed to start interview. Check console for details.');
     }
   };
 
@@ -246,6 +369,13 @@ Resume Summary:
   const sendAudio = async (audioBlob: Blob) => {
     if (!socketRef.current) return;
 
+    // Guard: ensure server-side session is active before sending
+    if (!isSessionReady) {
+      toast.error('Interview session is not ready yet. Please wait for the AI to ask the first question.');
+      setIsProcessing(false);
+      return;
+    }
+
     try {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -262,9 +392,24 @@ Resume Summary:
   const sendText = () => {
     if (!socketRef.current || !textInput.trim()) return;
 
+    // Guard: ensure server-side session is active before sending
+    if (!isSessionReady) {
+      toast.error('Interview session is not ready yet. Please wait for the AI to ask the first question.');
+      return;
+    }
+
+    const trimmedText = textInput.trim();
+    
+    // Immediately show the user's message in the chat (optimistic render)
+    setMessages(prev => [...prev, {
+      role: 'user',
+      text: trimmedText,
+      timestamp: new Date()
+    }]);
+    
     setIsProcessing(true);
-    socketRef.current?.emit('send_text', { text: textInput });
     setTextInput('');
+    socketRef.current?.emit('send_text', { text: trimmedText });
   };
 
   const progress = currentQuestion > 0 ? (currentQuestion / 10) * 100 : 0;
@@ -308,20 +453,63 @@ Resume Summary:
 
           {/* Start Interview Button */}
           {!interviewStarted && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Ready to Begin?</CardTitle>
-                <CardDescription>
-                  The AI interviewer will ask you 10 questions based on the job description and your resume.
-                  You can answer using voice or text.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={startInterview} size="lg" className="w-full">
-                  Start Interview
-                </Button>
-              </CardContent>
-            </Card>
+            <>
+              {/* Connection Status */}
+              <Card className={`border-2 ${
+                connectionError 
+                  ? 'border-red-300 bg-red-50 dark:bg-red-950 dark:border-red-800'
+                  : isConnected
+                  ? 'border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800'
+                  : 'border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800'
+              }`}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2 w-2 rounded-full ${
+                        connectionError ? 'bg-red-500' : isConnected ? 'bg-green-500 animate-pulse' : 'bg-yellow-500 animate-pulse'
+                      }`}></span>
+                      <span>
+                        {connectionError
+                          ? `❌ ${connectionError}`
+                          : isConnected
+                          ? '✅ Ready to start'
+                          : '⏳ Connecting to interview server... Please wait'}
+                      </span>
+                    </div>
+                    {/* Only show Retry button after a confirmed failure, not during initial connect */}
+                    {connectionError && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={connectSocket}
+                      >
+                        🔄 Retry Connection
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Ready to Begin?</CardTitle>
+                  <CardDescription>
+                    The AI interviewer will ask you 10 questions based on the job description and your resume.
+                    You can answer using voice or text.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    onClick={startInterview}
+                    size="lg"
+                    className="w-full"
+                    disabled={!isConnected}
+                  >
+                    {isConnected ? 'Start Interview' : 'Connecting...'}
+                  </Button>
+                </CardContent>
+              </Card>
+            </>
           )}
 
           {/* Split Layout: Chat + Transcript */}
@@ -371,19 +559,27 @@ Resume Summary:
                   {/* Input Controls */}
                   {!isComplete && (
                     <div className="mt-4 space-y-3">
+                      {/* Session not yet confirmed by server */}
+                      {!isSessionReady && (
+                        <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-md text-sm text-yellow-700 dark:text-yellow-300">
+                          <Spinner className="h-4 w-4" />
+                          <span>Waiting for AI interviewer to start the session... Please wait.</span>
+                        </div>
+                      )}
+
                       <div className="flex gap-2">
                         <input
                           type="text"
                           value={textInput}
                           onChange={(e) => setTextInput(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && sendText()}
-                          placeholder="Type your answer..."
-                          className="flex-1 px-4 py-2 border rounded-md"
-                          disabled={isProcessing}
+                          placeholder={isSessionReady ? 'Type your answer...' : 'Waiting for session...'}
+                          className="flex-1 px-4 py-2 border rounded-md disabled:opacity-50"
+                          disabled={isProcessing || !isSessionReady}
                         />
                         <Button
                           onClick={sendText}
-                          disabled={!textInput.trim() || isProcessing}
+                          disabled={!textInput.trim() || isProcessing || !isSessionReady}
                         >
                           <Send className="h-4 w-4" />
                         </Button>
@@ -392,7 +588,7 @@ Resume Summary:
                       <div className="flex justify-center">
                         <Button
                           onClick={isRecording ? stopRecording : startRecording}
-                          disabled={isProcessing}
+                          disabled={isProcessing || !isSessionReady}
                           variant={isRecording ? 'destructive' : 'outline'}
                           size="lg"
                           className="w-full"

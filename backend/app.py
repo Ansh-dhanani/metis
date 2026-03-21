@@ -103,17 +103,24 @@ def clear_hsts(response):
     return response
 
 # Initialize SocketIO (Needed for live interviews)
+# Enable on all platforms including Vercel
 socketio = None
-if not IS_VERCEL:
-    try:
-        from flask_socketio import SocketIO
-        socketio = SocketIO(
-            app,
-            cors_allowed_origins=allowed_origins,
-            async_mode='threading'
-        )
-    except Exception as e:
-        print(f"⚠️ SocketIO initialization failed: {e}")
+try:
+    from flask_socketio import SocketIO
+    # Use eventlet for proper async handling (threading causes socket errors on Windows)
+    socketio = SocketIO(
+        app,
+        cors_allowed_origins=allowed_origins,
+        async_mode='eventlet',
+        logger=False,
+        engineio_logger=False,
+        ping_timeout=120,
+        ping_interval=25
+    )
+    print("✅ SocketIO initialized successfully with eventlet")
+except Exception as e:
+    print(f"⚠️ SocketIO initialization failed: {e}")
+    print("⚠️ Live interviews will not be available")
 
 
 # MongoDB Configuration (with error handling)
@@ -191,13 +198,16 @@ try:
 except Exception as e:
     print(f"Error registering blueprints: {e}")
 
-if not IS_VERCEL and socketio is not None:
+if socketio is not None:
     try:
         from routes.live_interview import live_interview_bp, init_socketio
         app.register_blueprint(live_interview_bp, url_prefix='/api/live-interview')
         init_socketio(socketio)
+        print("✅ Live Interview routes and SocketIO handlers registered")
     except Exception as e:
-        print(f"Error initializing SocketIO: {e}")
+        print(f"⚠️ Error initializing live interview: {e}")
+else:
+    print("⚠️ SocketIO not available - live interviews disabled")
 
 @app.route("/")
 def hello_world():

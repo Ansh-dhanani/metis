@@ -1,7 +1,7 @@
 import os
 from pymongo import MongoClient
 from dotenv import load_dotenv
-import ssl
+
 
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'), override=True)
 
