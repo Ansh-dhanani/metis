@@ -23,7 +23,7 @@ try:
     from metis.tts import speak_async
     INTERVIEW_AVAILABLE = True
 except ImportError as e:
-    print(f"Warning: Interview models not available: {e}")
+    print(f"[WARN] Interview models not available: {e}")
     INTERVIEW_AVAILABLE = False
 
 live_interview_bp = Blueprint('live_interview', __name__)
@@ -75,7 +75,7 @@ def init_socketio(socketio):
             }
         """
         if not INTERVIEW_AVAILABLE:
-            print("⚠️ INTERVIEW_AVAILABLE is False - models not loaded")
+            print("[WARN] INTERVIEW_AVAILABLE is False - models not loaded")
             emit('error', {'message': 'Interview service unavailable. Please contact support.'})
             return
         
@@ -88,7 +88,7 @@ def init_socketio(socketio):
             jd_text = data.get('jdText', '')
             candidate_context = data.get('candidateContext', '')
             
-            print(f"🎤 Starting interview session {session_id} for candidate {candidate_id}")
+            print(f"[INTERVIEW] Starting session {session_id} for candidate {candidate_id}")
             
             # Create interviewer instance
             interviewer = LiveInterviewer(
@@ -108,12 +108,12 @@ def init_socketio(socketio):
                 'last_activity': datetime.now()  # Track for timeout
             }
             
-            print(f"✅ Session {session_id} created and stored")
+            print(f"[INTERVIEW] Session {session_id} created and stored")
             
-            # ✅ Confirm session IMMEDIATELY — frontend needs this to unlock inputs
+            # Confirm session IMMEDIATELY -- frontend needs this to unlock inputs
             emit('session_started', {'sessionId': session_id, 'message': 'Interview started'})
             
-            # Get opening question (fast LLM — ~0.3s with 8b-instant)
+            # Get opening question
             opening = interviewer.get_opening()
             
             # Store message
@@ -123,17 +123,18 @@ def init_socketio(socketio):
                 'timestamp': datetime.now()
             })
             
-            print(f"📢 Sending opening question to client")
+            print(f"[INTERVIEW] Sending opening question to client")
             
             # Generate audio (non-fatal: if it fails, send text-only)
             audio_data = None
             try:
                 audio_path = speak_async(opening)
-                with open(audio_path, "rb") as f:
-                    audio_data = base64.b64encode(f.read()).decode('utf-8')
-                os.unlink(audio_path)
+                if audio_path:
+                    with open(audio_path, "rb") as f:
+                        audio_data = base64.b64encode(f.read()).decode('utf-8')
+                    os.unlink(audio_path)
             except Exception as audio_err:
-                print(f"⚠️ Audio generation failed (text-only fallback): {audio_err}")
+                print(f"[WARN] Audio generation failed (text-only fallback): {audio_err}")
             
             # Send to client
             emit('ai_response', {
@@ -145,7 +146,7 @@ def init_socketio(socketio):
             })
             
         except Exception as e:
-            print(f"🔥 Error starting interview: {str(e)}")
+            print(f"[ERROR] Error starting interview: {str(e)}")
             import traceback
             traceback.print_exc()
             emit('error', {'message': f'Failed to start interview: {str(e)}'})
@@ -170,8 +171,8 @@ def init_socketio(socketio):
             session_id = request.sid
             
             if session_id not in active_sessions:
-                print(f"🔴 Session {session_id} not found in active_sessions")
-                print(f"   Active sessions: {list(active_sessions.keys())}")
+                print(f"[ERROR] Session {session_id} not found in active_sessions")
+                print(f"  Active sessions: {list(active_sessions.keys())}")
                 emit('error', {
                     'message': 'No active interview session. The session may have expired or the server restarted. Please refresh the page and start a new interview.',
                     'code': 'SESSION_NOT_FOUND'
@@ -187,7 +188,7 @@ def init_socketio(socketio):
                 emit('error', {'message': 'No audio data received'})
                 return
             
-            print(f"📝 Processing audio for session {session_id}...")
+            print(f"[INTERVIEW] Processing audio for session {session_id}...")
             
             # Save audio to temp file
             with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as fp:
@@ -199,7 +200,7 @@ def init_socketio(socketio):
             user_text = transcript_res.get('text', '')
             os.unlink(temp_path)
             
-            print(f"   Transcribed: {user_text[:100]}")
+            print(f"  Transcribed: {user_text[:100]}")
             
             # Send transcript to client
             emit('user_transcript', {'text': user_text})
@@ -221,17 +222,18 @@ def init_socketio(socketio):
                 'timestamp': datetime.now()
             })
             
-            print(f"   Q{interviewer.question_count}/10 - Interview complete: {interviewer.is_complete}")
+            print(f"  Q{interviewer.question_count}/10 - Interview complete: {interviewer.is_complete}")
             
             # Send response (with optional audio)
             audio_data = None
             try:
                 audio_path = speak_async(ai_text)
-                with open(audio_path, "rb") as f:
-                    audio_data = base64.b64encode(f.read()).decode('utf-8')
-                os.unlink(audio_path)
+                if audio_path:
+                    with open(audio_path, "rb") as f:
+                        audio_data = base64.b64encode(f.read()).decode('utf-8')
+                    os.unlink(audio_path)
             except Exception as audio_err:
-                print(f"⚠️ Audio generation failed (text-only fallback): {audio_err}")
+                print(f"[WARN] Audio generation failed (text-only fallback): {audio_err}")
             
             emit('ai_response', {
                 'text': ai_text,
@@ -242,11 +244,11 @@ def init_socketio(socketio):
             
             # If interview complete, save to database
             if interviewer.is_complete:
-                print(f"🎉 Interview complete for session {session_id}, saving...")
+                print(f"[INTERVIEW] Interview complete for session {session_id}, saving...")
                 save_interview_data(session)
                 
         except Exception as e:
-            print(f"🔥 Error handling audio: {str(e)}")
+            print(f"[ERROR] Error handling audio: {str(e)}")
             import traceback
             traceback.print_exc()
             emit('error', {'message': f'Error processing audio: {str(e)}'})
@@ -270,8 +272,8 @@ def init_socketio(socketio):
             session_id = request.sid
             
             if session_id not in active_sessions:
-                print(f"🔴 Text handler: Session {session_id} not found in active_sessions")
-                print(f"   Active sessions: {list(active_sessions.keys())}")
+                print(f"[ERROR] Text handler: Session {session_id} not found in active_sessions")
+                print(f"  Active sessions: {list(active_sessions.keys())}")
                 emit('error', {
                     'message': 'No active interview session. The session may have expired or the server restarted. Please refresh the page and start a new interview.',
                     'code': 'SESSION_NOT_FOUND'
@@ -287,7 +289,7 @@ def init_socketio(socketio):
                 emit('error', {'message': 'No text received'})
                 return
             
-            print(f"💬 Text input for session {session_id}: {user_text[:100]}")
+            print(f"[INTERVIEW] Text input for session {session_id}: {user_text[:100]}")
             
             # Echo user message back to client (consistent with audio path)
             emit('user_transcript', {'text': user_text})
@@ -309,7 +311,7 @@ def init_socketio(socketio):
                 'timestamp': datetime.now()
             })
             
-            print(f"   Q{interviewer.question_count}/10 - Interview complete: {interviewer.is_complete}")
+            print(f"  Q{interviewer.question_count}/10 - Interview complete: {interviewer.is_complete}")
             
             # Send response (with optional audio)
             audio_data = None
@@ -320,7 +322,7 @@ def init_socketio(socketio):
                         audio_data = base64.b64encode(f.read()).decode('utf-8')
                     os.unlink(audio_path)
             except Exception as audio_err:
-                print(f"⚠️ Audio generation failed (text-only fallback): {audio_err}")
+                print(f"[WARN] Audio generation failed (text-only fallback): {audio_err}")
             
             emit('ai_response', {
                 'text': ai_text,
@@ -331,11 +333,11 @@ def init_socketio(socketio):
             
             # If interview complete, save to database
             if interviewer.is_complete:
-                print(f"🎉 Interview complete (text mode) for session {session_id}, saving...")
+                print(f"[INTERVIEW] Interview complete (text mode) for session {session_id}, saving...")
                 save_interview_data(session)
                 
         except Exception as e:
-            print(f"🔥 Error handling text: {str(e)}")
+            print(f"[ERROR] Error handling text: {str(e)}")
             import traceback
             traceback.print_exc()
             emit('error', {'message': f'Error processing response: {str(e)}'})
@@ -346,21 +348,21 @@ def init_socketio(socketio):
         """End interview session and save data."""
         try:
             session_id = request.sid
-            print(f"🛑 End interview requested for session {session_id}")
+            print(f"[INTERVIEW] End interview requested for session {session_id}")
             
             if session_id in active_sessions:
                 session = active_sessions[session_id]
-                print(f"   Saving session data...")
+                print(f"  Saving session data...")
                 save_interview_data(session)
                 del active_sessions[session_id]
-                print(f"   ✅ Session cleaned up")
+                print(f"  Session cleaned up")
             else:
-                print(f"   ⚠️ Session not found, nothing to save")
+                print(f"  Session not found, nothing to save")
                 
             emit('interview_ended', {'message': 'Interview saved successfully'})
             
         except Exception as e:
-            print(f"🔥 Error ending interview: {str(e)}")
+            print(f"[ERROR] Error ending interview: {str(e)}")
             import traceback
             traceback.print_exc()
             emit('error', {'message': f'Error ending interview: {str(e)}'})
@@ -370,22 +372,25 @@ def init_socketio(socketio):
     def handle_disconnect():
         """Clean up on disconnect."""
         session_id = request.sid
-        print(f"🔌 Client disconnected: {session_id}")
+        print(f"[SOCKETIO] Client disconnected: {session_id}")
         if session_id in active_sessions:
             # Auto-save on disconnect
-            print(f"   Saving interview data before cleanup...")
+            print(f"  Saving interview data before cleanup...")
             session = active_sessions[session_id]
             save_interview_data(session)
             del active_sessions[session_id]
-            print(f"   ✅ Session cleaned up")
+            print(f"  Session cleaned up")
         else:
-            print(f"   No active session to clean up")
+            print(f"  No active session to clean up")
 
 
 def save_interview_data(session):
     """Save interview transcript and data to database."""
     try:
         db = get_db()
+        if db is None:
+            print("[ERROR] Cannot save interview: database not connected")
+            return
         
         # Store all IDs as strings for consistent querying.
         # The evaluation route uses $or to handle both string and ObjectId forms.
@@ -410,7 +415,7 @@ def save_interview_data(session):
         
         # Save to interviews collection
         result = db.interviews.insert_one(interview_data)
-        print(f"✅ Interview saved to DB with ID: {result.inserted_id}")
+        print(f"[DB] Interview saved with ID: {result.inserted_id}")
         
         # Update application status using applicationId
         if application_id and ObjectId.is_valid(str(application_id)):
@@ -424,7 +429,7 @@ def save_interview_data(session):
                     }
                 }
             )
-            print(f"✅ Application updated: {app_result.modified_count} document(s)")
+            print(f"[DB] Application updated: {app_result.modified_count} document(s)")
         elif session.get('job_id') and session.get('candidate_id'):
             # Fallback to job_id + candidate_id if applicationId is not available
             app_result = db.applications.update_one(
@@ -440,9 +445,9 @@ def save_interview_data(session):
                     }
                 }
             )
-            print(f"⚠️ Application updated (fallback query): {app_result.modified_count} document(s)")
+            print(f"[DB] Application updated (fallback query): {app_result.modified_count} document(s)")
         
     except Exception as e:
-        print(f"🔥 Error saving interview data: {e}")
+        print(f"[ERROR] Error saving interview data: {e}")
         import traceback
         traceback.print_exc()

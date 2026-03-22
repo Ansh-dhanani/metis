@@ -1,3 +1,16 @@
+"""
+Metis Hire - Backend Application
+Flask application with SocketIO for real-time AI interviews.
+"""
+
+# ── Fix Windows console encoding (must be before any print) ──────────────────
+import sys
+import io
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
 from datetime import datetime
 import os
 from flask import Flask, jsonify, request
@@ -18,8 +31,8 @@ env = os.getenv('FLASK_ENV', 'development')
 IS_PRODUCTION = env == 'production'
 IS_VERCEL = os.getenv('VERCEL') == '1' or os.getenv('VERCEL_ENV') is not None
 
-print(f"🛠️  Environment: {env.upper()}")
-print(f"📁 Root directory: {os.path.abspath(os.path.dirname(__file__))}")
+print(f"[APP] Environment: {env.upper()}")
+print(f"[APP] Root directory: {os.path.abspath(os.path.dirname(__file__))}")
 
 # Global error handler to always return JSON for HTTP errors
 @app.errorhandler(HTTPException)
@@ -37,7 +50,7 @@ def handle_exception(e):
     if isinstance(e, HTTPException):
         return e
 
-    print(f"🔥 UNCAUGHT ERROR: {str(e)}")
+    print(f"[ERROR] UNCAUGHT: {str(e)}")
     import traceback
     traceback.print_exc()
     return jsonify({
@@ -48,16 +61,16 @@ def handle_exception(e):
 
 @app.before_request
 def log_request():
-    print(f"🚀 {request.method} {request.path}")
+    print(f"[REQ] {request.method} {request.path}")
 
 
 if IS_PRODUCTION and not IS_VERCEL:
     try:
         from config.production import configure_production
         configure_production(app)
-        print("🔒 Production configuration applied (Security headers & Rate limiting)")
+        print("[APP] Production configuration applied (Security headers & Rate limiting)")
     except Exception as e:
-        print(f"⚠️ Error applying production config: {e}")
+        print(f"[WARN] Error applying production config: {e}")
 
 # ── CORS Configuration ────────────────────────────────────────
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://metis-hire-1.onrender.com")
@@ -72,7 +85,7 @@ allowed_origins = [
 # Remove duplicates
 allowed_origins = list(set(allowed_origins))
 
-print(f"🌐 Allowed CORS origins: {allowed_origins}")
+print(f"[CORS] Allowed origins: {allowed_origins}")
 
 CORS(app,
      origins=allowed_origins,
@@ -103,24 +116,26 @@ def clear_hsts(response):
     return response
 
 # Initialize SocketIO (Needed for live interviews)
-# Enable on all platforms including Vercel
 socketio = None
 try:
     from flask_socketio import SocketIO
-    # Use eventlet for proper async handling (threading causes socket errors on Windows)
+    # Use threading mode — stable on Windows (eventlet is deprecated)
     socketio = SocketIO(
         app,
-        cors_allowed_origins=allowed_origins,
-        async_mode='eventlet',
+        cors_allowed_origins="*",
+        async_mode='threading',
         logger=False,
         engineio_logger=False,
         ping_timeout=120,
-        ping_interval=25
+        ping_interval=25,
+        allow_upgrades=True
     )
-    print("✅ SocketIO initialized successfully with eventlet")
+    print("[SOCKETIO] Initialized successfully with threading mode")
 except Exception as e:
-    print(f"⚠️ SocketIO initialization failed: {e}")
-    print("⚠️ Live interviews will not be available")
+    print(f"[WARN] SocketIO initialization failed: {e}")
+    import traceback
+    traceback.print_exc()
+    print("[WARN] Live interviews will not be available")
 
 
 # MongoDB Configuration (with error handling)
@@ -130,13 +145,13 @@ mongodb_status = {
     "database": None
 }
 
+db = None  # Initialize db to None globally
+
 try:
     MONGO_URI = os.getenv("MONGO_URI", os.getenv("MONGO_URL", os.getenv("DATABASE_URL")))
     if MONGO_URI:
-        import ssl
-
         sanitized_uri = MONGO_URI.split('@')[1] if '@' in MONGO_URI else "URI not properly formatted"
-        print(f"🔌 Attempting MongoDB connection to: ...@{sanitized_uri}")
+        print(f"[DB] Attempting MongoDB connection to: ...@{sanitized_uri}")
 
         client = MongoClient(
             MONGO_URI,
@@ -150,25 +165,25 @@ try:
         db = client['metis_db']
         mongodb_status["connected"] = True
         mongodb_status["database"] = "metis_db"
-        print("✅ MongoDB connected successfully")
-        print(f"📊 MongoDB database: {db.name}")
+        print("[DB] MongoDB connected successfully")
+        print(f"[DB] Database: {db.name}")
     else:
-        print("⚠️ WARNING: No MONGO_URI, MONGO_URL, or DATABASE_URL found in environment")
+        print("[WARN] No MONGO_URI, MONGO_URL, or DATABASE_URL found in environment")
         mongodb_status["error"] = "No MONGO_URI environment variable"
         client = None
         db = None
 except Exception as e:
     error_msg = str(e)
-    print(f"❌ MongoDB connection error: {error_msg}")
+    print(f"[ERROR] MongoDB connection error: {error_msg}")
 
     if "ServerSelectionTimeoutError" in error_msg or "timed out" in error_msg.lower():
-        print("💡 Tip: Add 0.0.0.0/0 to MongoDB Atlas Network Access allowlist")
+        print("[TIP] Add 0.0.0.0/0 to MongoDB Atlas Network Access allowlist")
         mongodb_status["error"] = "Connection timeout - Check IP allowlist"
     elif "Authentication failed" in error_msg or "auth" in error_msg.lower():
-        print("💡 Tip: Check MongoDB username/password in URI")
+        print("[TIP] Check MongoDB username/password in URI")
         mongodb_status["error"] = "Authentication failed - Check credentials"
     elif "SSL" in error_msg or "TLS" in error_msg:
-        print("💡 Tip: Ensure URI has tls=true parameter")
+        print("[TIP] Ensure URI has tls=true parameter")
         mongodb_status["error"] = "SSL/TLS error - Check connection parameters"
     else:
         mongodb_status["error"] = error_msg
@@ -195,19 +210,24 @@ try:
     app.register_blueprint(applications_bp, url_prefix='/api/applications')
     app.register_blueprint(evaluation_bp, url_prefix='/api/evaluation')
     app.register_blueprint(advanced_ranking_bp, url_prefix='/api/advanced-ranking')
+    print("[APP] All blueprints registered successfully")
 except Exception as e:
-    print(f"Error registering blueprints: {e}")
+    print(f"[ERROR] Error registering blueprints: {e}")
+    import traceback
+    traceback.print_exc()
 
 if socketio is not None:
     try:
         from routes.live_interview import live_interview_bp, init_socketio
         app.register_blueprint(live_interview_bp, url_prefix='/api/live-interview')
         init_socketio(socketio)
-        print("✅ Live Interview routes and SocketIO handlers registered")
+        print("[SOCKETIO] Live Interview routes and SocketIO handlers registered")
     except Exception as e:
-        print(f"⚠️ Error initializing live interview: {e}")
+        print(f"[WARN] Error initializing live interview: {e}")
+        import traceback
+        traceback.print_exc()
 else:
-    print("⚠️ SocketIO not available - live interviews disabled")
+    print("[WARN] SocketIO not available - live interviews disabled")
 
 @app.route("/")
 def hello_world():
@@ -215,9 +235,10 @@ def hello_world():
         "status": "ok",
         "message": "Metis API is running",
         "version": "1.0.6",
-        "timestamp": "2024-02-17 21:35:00",
+        "timestamp": datetime.now().isoformat(),
         "env": env.upper(),
         "mongodb": "connected" if mongodb_status["connected"] else "disconnected",
+        "socketio": "enabled" if socketio is not None else "disabled",
     }
     return jsonify(response)
 
@@ -238,17 +259,25 @@ def health_check():
     health = {
         "status": "healthy" if mongodb_status["connected"] else "degraded",
         "mongodb": "connected" if mongodb_status["connected"] else "disconnected",
-        "timestamp": os.popen('date').read().strip() if os.name != 'nt' else "N/A"
+        "socketio": "enabled" if socketio is not None else "disabled",
+        "timestamp": datetime.now().isoformat()
     }
     status_code = 200 if mongodb_status["connected"] else 503
-    return health, status_code
+    return jsonify(health), status_code
 
 if __name__ == "__main__":
-    PORT = 5000
-    DEBUG = True
-    print(f"🚀 NUCLEAR START: http://localhost:{PORT}")
+    PORT = int(os.getenv("PORT", 5000))
+    print(f"[APP] Starting server at http://localhost:{PORT}")
 
-    if socketio:
-        socketio.run(app, host='0.0.0.0', port=PORT, debug=DEBUG, allow_unsafe_werkzeug=True)
+    if socketio is not None:
+        socketio.run(
+            app,
+            host='0.0.0.0',
+            port=PORT,
+            debug=False,
+            use_reloader=False,
+            log_output=True,
+            allow_unsafe_werkzeug=True
+        )
     else:
-        app.run(host='0.0.0.0', port=PORT, debug=DEBUG)
+        app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)
