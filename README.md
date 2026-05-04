@@ -680,7 +680,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 <a href="https://github.com/Ansh-dhanani/metis/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=Ansh-dhanani/metis" />
 </a>
-
+<a href="https://github.com/Kscoder11/metis/graphs/contributors">
 ---
 
 We would like to thank the following contributors for their valuable contributions to Metis:
